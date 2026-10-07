@@ -1,0 +1,131 @@
+spring:
+  application:
+    name: Employee-Service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/employee
+    username: jojolapatech
+    password: Nepal@123
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      pool-name: BUCKET_HIKARICP_POOL
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+
+  security:
+    oauth2:
+      resourceserver:
+        opaque-token:
+          introspection-uri: http://localhost:8000/oauth2/introspect
+          client-id: ${AUTH_CLIENT_ID:client}
+          client-secret: ${AUTH_CLIENT_SECRET:secret}
+  kafka:
+    bootstrap-servers: 20.255.57.52:9092
+    consumer:
+      group-id: notification-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      enable-auto-commit: false
+      properties:
+        max.poll.records: 500
+        session.timeout.ms: 15000
+        heartbeat.interval.ms: 5000
+        isolation.level: read_committed
+    listener:
+      ack-mode: manual
+      concurrency: 3
+
+  data:
+    redis:
+      host: 20.255.57.52
+      username: admin
+      password: admin
+      port: 6379
+      timeout: 2000
+      database: 0
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: 1000
+  cache:
+    type: redis
+    redis:
+      cache-null-values: false
+      time-to-live: 43200000
+      use-key-prefix: true
+  cloud:
+    consul:
+      host: 20.255.57.52
+      port: 8500
+      discovery:
+        enabled: true
+        service-name: ${spring.application.name}
+        instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+        prefer-ip-address: true
+        acl-token: e7637483-ce60-4da0-b070-ea3a58a28856
+        ip-address: 20.2.81.80
+        port: 8004
+        health-check-path: /actuator/health
+        health-check-interval: 10s
+        health-check-critical-timeout: 3m
+
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      bucket-service:
+        register-health-indicator: true
+        failure-rate-threshold: 50
+        minimum-number-of-calls: 10
+        sliding-window-size: 10
+        sliding-window-type: COUNT_BASED
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 5
+        automatic-transition-from-open-to-half-open-enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env,loggers,threaddump,heapdump
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+  metrics:
+    enable:
+      all: true
+server:
+  port: 8004
+  url: http://erp-api.jojolapatech.com
+  shutdown: graceful
+
+external:
+  auth-service: http://auth-service/api/v2/user
+
+kafka:
+  otp-topic: otp
+  activity-topic: activity
+  notification-topic: notification
+
+aes:
+  algorithm: AES
+  padding: AES/ECB/PKCS5Padding
+  secret: LchiQkmHkgmjgOEF
+
+bucket:
+  url: /api/v2/bucket/document/retrieve

@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package com.nepbrain.technology.axcessfoundation.bucket.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.nepbrain.technology.axcessfoundation.bucket.grpc";
+option java_outer_classname = "BucketProto";
+
+service BucketGrpcService {
+  rpc UploadImage(UploadImageRequest) returns (UploadImageResponse);
+  rpc UploadUserPhoto(UploadUserPhotoRequest) returns (UploadImageResponse);
+}
+
+message UploadImageRequest {
+  string encoded_data = 1;  // base64 image data (with or without data:image/...;base64, prefix)
+  string folder_path = 2;   // e.g. "master/country"
+  string file_name = 3;     // e.g. "flag" or "image"
+}
+
+message UploadImageResponse {
+  bool success = 1;
+  string message = 2;
+  string url = 3;          // full URL to access the uploaded file
+}
+
+message UploadUserPhotoRequest {
+  string user_id = 1;       // user UUID - stored under folder user/{user_id}
+  string encoded_data = 2;  // base64 image (with or without data:image/...;base64, prefix)
+}

@@ -1,0 +1,107 @@
+spring:
+  application:
+    name: ${COMMUNICATION_SERVICE:communication-service}
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME_COMMUNICATION}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: CommunicationHikariPool
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 20000
+      leak-detection-threshold: 60000
+      auto-commit: true
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    defer-datasource-initialization: true
+  security:
+    oauth2:
+      resourceserver:
+        opaque-token:
+          introspection-uri: ${AUTH_INTROSPECT_URL:http://localhost:8000/oauth2/introspect}
+          client-id: ${AUTH_CLIENT_ID:client}
+          client-secret: ${AUTH_SECRET:secret}
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      username: ${REDIS_USERNAME}
+      password: ${REDIS_PASSWORD}
+      timeout: 2000
+      database: 0
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: 1000
+  cache:
+    type: redis
+    redis:
+      cache-null-values: false
+      time-to-live: 43200000
+      use-key-prefix: true
+  cloud:
+    consul:
+      host: ${CONSUL_HOST}
+      port: ${CONSUL_PORT}
+      discovery:
+        enabled: true
+        service-name: ${spring.application.name}
+        instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+        prefer-ip-address: true
+        acl-token: ${CONSUL_ACL_TOKEN}
+        health-check-path: /actuator/health
+        health-check-interval: 10s
+        health-check-critical-timeout: 3m
+  jackson:
+    default-property-inclusion: non_null
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env,loggers,threaddump,heapdump
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+  metrics:
+    enable:
+      all: true
+
+otp:
+  length: 4
+  expiry-time-second: 600
+
+server:
+  port: ${SERVER_PORT_COMMUNICATION_SERVICE:8011}
+  url: ${SERVER_URL:http://localhost:8011}
+  shutdown: graceful
+  max-http-request-header-size: 30KB
+
+grpc:
+  server:
+    address: ${GRPC_SERVER_ADDRESS:0.0.0.0}
+    port: ${COMMUNICATION_GRPC_PORT:8911}
+
+services:
+  master: http://master-service:8004/api/v2/master/
+  user: http://user-service:8001/api/v2/user/
+  customer: http://customer-service:8001/api/v2/customer/
+
+sms:
+  username: ${SMS_USERNAME:RemitTest}
+  password: ${SMS_PASSWORD:Remit@Test123}
+  organizationCode: ${SMS_ORGANIZATION_CODE:RemitTest}

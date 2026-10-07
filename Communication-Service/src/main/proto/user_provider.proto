@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package com.nepbrain.technology.axcessfoundation.user.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.nepbrain.technology.axcessfoundation.user.grpc";
+option java_outer_classname = "UserProviderProto";
+
+// Service for Communication-Service to fetch users for bulk messaging (client stub)
+service UserProviderService {
+  rpc GetUsersForBulkMessage (GetUsersForBulkMessageRequest) returns (GetUsersForBulkMessageResponse);
+}
+
+message GetUsersForBulkMessageRequest {
+  bool fetch_all = 1;
+  repeated string role_ids = 2;
+  repeated string user_ids = 3;
+}
+
+message GetUsersForBulkMessageResponse {
+  repeated UserContactInfo users = 1;
+}
+
+message UserContactInfo {
+  string id = 1;
+  string email = 2;
+  string mobile_number = 3;
+  string full_name = 4;
+  repeated string fcm_tokens = 5;
+}

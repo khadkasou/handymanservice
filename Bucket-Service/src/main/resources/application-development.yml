@@ -1,0 +1,97 @@
+spring:
+  application:
+    name: ${BUCKET_SERVICE:Bucket-Service}
+  datasource:
+    # PostgreSQL only — do NOT map REDIS_PASSWORD / REDIS_USER here (see spring.data.redis below).
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME_BUCKET:${DB_NAME_COMMUNICATION:bucket}}
+    username: ${POSTGRES_USER:${DB_USERNAME:postgres}}
+    password: ${POSTGRES_PASSWORD:${DB_PASSWORD:}}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: BucketHikariPool
+      maximum-pool-size: 10
+      minimum-idle: 5
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  http:
+    codecs:
+      max-in-memory-size: 500MB
+  security:
+    oauth2:
+      resourceserver:
+        opaque-token:
+          introspection-uri: ${AUTH_INTROSPECT_URL:http://localhost:8000/oauth2/introspect}
+          client-id: ${AUTH_CLIENT_ID:client}
+          client-secret: ${AUTH_CLIENT_SECRET:${AUTH_SECRET:secret}}
+  cloud:
+    consul:
+      host: ${CONSUL_HOST}
+      port: ${CONSUL_PORT}
+      discovery:
+        enabled: true
+        service-name: ${spring.application.name}
+        instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+        prefer-ip-address: true
+        acl-token: ${CONSUL_ACL_TOKEN}
+        health-check-path: /actuator/health
+        health-check-interval: 10s
+        health-check-critical-timeout: 3m
+#  kafka:
+#    producer:
+#      bootstrap-servers: ${KAFKA_URL:localhost}:${KAFKA_PORT:9092}
+#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+#      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+#      group-id: notification_group
+
+
+service:
+  url:
+    master: http://master-service:8004/api/v2/master
+
+services:
+  master: ${SERVICES_MASTER_URL:http://master-service:8005/api/v2/master/}
+  user: ${SERVICES_USER_URL:http://user-service:8001/api/v2/user/}
+  customer: ${SERVICES_CUSTOMER_URL:http://customer-service:8004/api/v2/customer/}
+
+sms:
+  username: ${SMS_USERNAME:RemitTest}
+  password: ${SMS_PASSWORD:Remit@Test123}
+  organizationCode: ${SMS_ORGANIZATION_CODE:RemitTest}
+
+firebase:
+  batchSize: ${FIREBASE_BATCH_SIZE:40}
+
+server:
+  port: ${SERVER_PORT_BUCKET_SERVICE:8006}
+  url: ${SERVER_URL:https://api-erp.jojolapatech.com}
+  max-http-request-header-size: 30KB
+
+grpc:
+  server:
+    address: ${GRPC_SERVER_ADDRESS:0.0.0.0}
+    port: ${GRPC_SERVER_PORT:8906}
+  client:
+    user-service:
+      address: ${USER_SERVICE_GRPC_ADDRESS:static://user-service:8901}
+      negotiationType: PLAINTEXT
+
+otp:
+  length: 4
+  expiry-time-second: 600
+
+communication:
+  initial-data:
+    load-on-startup: ${COMMUNICATION_INITIAL_DATA_LOAD:true}
+
+mail:
+  aws-access-key: ${MAIL_AWS_ACCESS_KEY:}
+  aws-secret-key: ${MAIL_AWS_SECRET_KEY:}
+  aws-region: ${MAIL_AWS_REGION:ap-south-1}
+  from: ${MAIL_FROM:noreply@tendernotice.com.np}
+
+
+
+

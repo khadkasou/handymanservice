@@ -1,0 +1,165 @@
+spring:
+  main:
+    web-application-type: reactive
+  application:
+    name: Bucket-Service
+  security:
+    oauth2:
+      resourceserver:
+        # Must match the auth server used by other services (Employee, User, …). Set AUTH_INTROSPECT_URL in every env.
+        opaque-token:
+          introspection-uri: ${AUTH_INTROSPECT_URL:http://localhost:8000/oauth2/introspect}
+          client-id: ${AUTH_CLIENT_ID:client}
+          # Prefer AUTH_CLIENT_SECRET; AUTH_SECRET is a common alias (same value as login client secret).
+          client-secret: ${AUTH_CLIENT_SECRET:${AUTH_SECRET:secret}}
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME_BUCKET:${DB_NAME_COMMUNICATION:bucket}}
+    username: ${POSTGRES_USER:${DB_USERNAME:postgres}}
+    password: ${POSTGRES_PASSWORD:${DB_PASSWORD:password}}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      pool-name: MyHikariCP
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  cloud:
+    consul:
+      host: ${CONSUL_HOST:localhost}
+      port: ${CONSUL_PORT:8500}
+      discovery:
+        enabled: true
+        service-name: ${spring.application.name}
+        instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+        prefer-ip-address: true
+        acl-token: ${CONSUL_ACL_TOKEN:e7637483-ce60-4da0-b070-ea3a58a28856}
+        health-check-path: /actuator/health
+        health-check-interval: 10s
+        health-check-critical-timeout: 3m
+
+#  kafka:
+#    producer:
+#      bootstrap-servers: localhost:9092
+#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+#      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+#      group-id: notification_group
+#      acks: all
+#      linger-ms: 10
+#      batch-size: 16384
+#      buffer-memory: 33554432
+  http:
+    codecs:
+      max-in-memory-size: 500MB
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info"
+  endpoint:
+    health:
+      show-details: "always"
+
+server:
+  port: 8006
+  url: http://localhost:8006
+  max-http-request-header-size: 30KB
+
+grpc:
+  server:
+    address: ${GRPC_SERVER_ADDRESS:0.0.0.0}
+    port: ${GRPC_SERVER_PORT:8906}
+  client:
+    user-service:
+      address: ${USER_SERVICE_GRPC_ADDRESS:static://localhost:8901}
+      negotiationType: PLAINTEXT
+
+otp:
+  length: 4
+  expiry-time-second: 600
+
+communication:
+  initial-data:
+    # Auth, user-account, leave, and attendance templates (data/messages_initial.csv).
+    load-on-startup: ${COMMUNICATION_INITIAL_DATA_LOAD:true}
+
+mail:
+  aws-access-key: ${MAIL_AWS_ACCESS_KEY:}
+  aws-secret-key: ${MAIL_AWS_SECRET_KEY:}
+  aws-region: ${MAIL_AWS_REGION:ap-south-1}
+  from: ${MAIL_FROM:noreply@tendernotice.com.np}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+    try-it-out-enabled: true
+  show-actuator: false
+  packages-to-scan: com.nepbrain.technology.bucket.controller, com.nepbrain.technology.communication.controller
+
+kafka:
+  topic:
+    application: APPLICATION-DEVELOPMENT
+
+service:
+  url:
+    master: http://master-service:8004/api/v2/master
+
+# Downstream HTTP clients used by communication (bulk SMS, templates, etc.)
+services:
+  master: ${SERVICES_MASTER_URL:http://localhost:8005/api/v2/master/}
+  user: ${SERVICES_USER_URL:http://localhost:8001/api/v2/user/}
+  customer: ${SERVICES_CUSTOMER_URL:http://localhost:8004/api/v2/customer/}
+
+sms:
+  username: ${SMS_USERNAME:RemitTest}
+  password: ${SMS_PASSWORD:Remit@Test123}
+  organizationCode: ${SMS_ORGANIZATION_CODE:RemitTest}
+
+firebase:
+  batchSize: ${FIREBASE_BATCH_SIZE:40}
+
+# Storage Configuration - Switch between MINIO and AWS_S3
+storage:
+  type: ${STORAGE_TYPE:AWS_S3}  # Options: MINIO, AWS_S3
+
+# MinIO Configuration
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+  accessKey: ${MINIO_ACCESS_KEY:admin}
+  secretKey: ${MINIO_SECRET_KEY:password}
+  bucketName: ${MINIO_BUCKET_NAME:erp}
+  retrieveUrl: "/api/v2/bucket/public/retrieve-bucket"
+
+# AWS S3 Configuration
+aws:
+  s3:
+    accessKey: ${AWS_ACCESS_KEY:DO00QQTZ397PHTPXE263}
+    secretKey: ${AWS_SECRET_KEY:sLAp/MMeXLI+J7qJqBO6IbEXFyXTTj5IPqqEJPwQEWA}
+    region: ${AWS_REGION:us-east-1}
+    bucketName: ${AWS_S3_BUCKET_NAME:tender-notice}
+    endpoint: ${AWS_S3_ENDPOINT:https://syd1.digitaloceanspaces.com}  # Optional: for S3-compatible services or custom endpoints
+
+aes:
+  encryption:
+    algorithm: AES
+    padding: AES/ECB/PKCS5Padding
+    secretKey: LchiQkmHkgmjgOEF
+    #  xsrfToken: 7GX6aZsIK3IJl8L0mrYR
+    xsrfToken: ENC(0GkBA/rY3i+QQk1UJ1qFGWYZ+A6QYPCBEMUbCYmSmpxhD73HQuvwlLvEUYyvNENdLm/xgD56X2hV/PnzuuS1nA==)
+
+jasypt:
+  encryptor:
+    password: Nepal@123
+    algorithm: PBEWithHMACSHA512AndAES_256

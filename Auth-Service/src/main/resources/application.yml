@@ -1,0 +1,99 @@
+spring:
+  application:
+    name: Auth-Service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/users
+    username: postgres
+    password: password
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: OpaqueAuthHikariPool
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 20000
+      leak-detection-threshold: 0
+      auto-commit: true
+  jpa:
+    hibernate:
+      # Default update so missing Auth tables/columns are created. Override with JPA_DDL_AUTO=none only when schema is managed elsewhere.
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    open-in-view: false
+    properties:
+      # Required for ddl-auto=update. Set HIBERNATE_JDBC_METADATA=false only if you intentionally skip schema tooling.
+      hibernate.boot.allow_jdbc_metadata_access: ${HIBERNATE_JDBC_METADATA:true}
+      hibernate.jdbc.time_zone: UTC
+#  sql:
+#    init:
+#      mode: always
+#    defer-datasource-initialization: true
+#    properties:
+#      jakarta.persistence.database-product-name: PostgreSQL
+#      jakarta.persistence.database-product-version: "17"
+  cloud:
+    consul:
+      # Consul is healthy locally again — register auth-service (fail-fast off so a blip won't kill boot).
+      enabled: ${CONSUL_ENABLED:true}
+      host: ${CONSUL_HOST:localhost}
+      port: ${CONSUL_PORT:8500}
+      discovery:
+        enabled: ${CONSUL_DISCOVERY_ENABLED:true}
+        fail-fast: ${CONSUL_FAIL_FAST:false}
+        register: ${CONSUL_REGISTER:true}
+        # Register as "auth-service" so API Gateway / Docker DNS stay aligned
+        service-name: auth-service
+        instance-id: auth-service:${spring.application.instance_id:${random.value}}
+        prefer-ip-address: true
+        acl-token: ${CONSUL_ACL_TOKEN:e7637483-ce60-4da0-b070-ea3a58a28856}
+        health-check-path: /actuator/health/liveness
+        health-check-interval: 10s
+        health-check-timeout: 5s
+        health-check-critical-timeout: 30m
+        heartbeat:
+          enabled: true
+          ttl: 30s
+          use-actuator-health: false
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:your-google-client-id}
+            client-secret: ${GOOGLE_CLIENT_SECRET:your-google-client-secret}
+            scope:
+              - email
+              - profile
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+          facebook:
+            client-id: ${FACEBOOK_CLIENT_ID:your-facebook-app-id}
+            client-secret: ${FACEBOOK_CLIENT_SECRET:your-facebook-app-secret}
+            scope:
+              - email
+              - public_profile
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://www.googleapis.com/oauth2/v4/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            user-name-attribute: sub
+          facebook:
+            authorization-uri: https://www.facebook.com/v18.0/dialog/oauth
+            token-uri: https://graph.facebook.com/v18.0/oauth/access_token
+            user-info-uri: https://graph.facebook.com/v18.0/me?fields=id,name,email
+            user-name-attribute: id
+
+server:
+  port: 8000
+
+oauth:
+  # Must match User-Service AUTH_CLIENT_ID / AUTH_CLIENT_SECRET (defaults erp / Nepal@123).
+  clientId: ${AUTH_CLIENT_ID:erp}
+  secret: ${AUTH_CLIENT_SECRET:${AUTH_SECRET:Nepal@123}}
+  introspectUri: http://localhost:8080/oauth2/introspect
+
+service:
+  url:
+    # Local IntelliJ default; Docker overrides with SERVICE_URL_USER=http://user-service:8002/...
+    user: ${SERVICE_URL_USER:http://localhost:8002/api/v2/account/}

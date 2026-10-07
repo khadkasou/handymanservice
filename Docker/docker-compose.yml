@@ -1,0 +1,81 @@
+# Handyman-solution local infrastructure
+# Usage (from this folder): docker compose up -d
+# Individual stacks under Consul/, Redis/, Minio/ remain available as in erp-solution.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: handyman-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      # Default DB; additional DBs created by postgres/init/*.sql
+      POSTGRES_DB: postgres
+    volumes:
+      - handyman_pg_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.2
+    container_name: handyman-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - handyman_redis_data:/data
+      - ./Redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+
+  consul:
+    image: hashicorp/consul:1.22
+    container_name: handyman-consul
+    restart: unless-stopped
+    ports:
+      - "8500:8500"
+      - "8600:8600/tcp"
+      - "8600:8600/udp"
+    command: "agent -config-dir=/consul/config"
+    volumes:
+      - ./Consul/consul-config:/consul/config:ro
+      - handyman_consul_data:/consul/data
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8500/v1/status/leader || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: handyman-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password
+    volumes:
+      - handyman_minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  handyman_pg_data:
+  handyman_redis_data:
+  handyman_consul_data:
+  handyman_minio_data:

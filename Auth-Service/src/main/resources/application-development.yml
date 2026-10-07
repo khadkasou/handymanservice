@@ -1,0 +1,71 @@
+spring:
+  application:
+    name: ${AUTH_SERVICE:Auth-Service}
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME_AUTH}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: OpaqueAuthHikariPool
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 20000
+      # Schema validate on large shared DB can exceed 60s; 0 disables false leak alarms at startup.
+      leak-detection-threshold: 0
+      auto-commit: true
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    defer-datasource-initialization: true
+    open-in-view: false
+    properties:
+      hibernate.boot.allow_jdbc_metadata_access: ${HIBERNATE_JDBC_METADATA:true}
+      hibernate.jdbc.time_zone: UTC
+  cloud:
+    consul:
+      enabled: ${CONSUL_ENABLED:true}
+      host: ${CONSUL_HOST}
+      port: ${CONSUL_PORT}
+      discovery:
+        enabled: ${CONSUL_DISCOVERY_ENABLED:true}
+        fail-fast: ${CONSUL_FAIL_FAST:false}
+        register: ${CONSUL_REGISTER:true}
+        # Must match Api-Gateway lb://auth-service (Consul names are case-sensitive).
+        service-name: auth-service
+        instance-id: auth-service:${spring.application.instance_id:${random.value}}
+        prefer-ip-address: true
+        acl-token: ${CONSUL_ACL_TOKEN}
+        health-check-path: /actuator/health/liveness
+        health-check-interval: 10s
+        health-check-critical-timeout: 30m
+        heartbeat:
+          enabled: true
+          ttl: 30s
+          use-actuator-health: false
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+
+oauth:
+  clientId: ${AUTH_CLIENT_ID:erp}
+  secret: ${AUTH_CLIENT_SECRET:${AUTH_SECRET:Nepal@123}}
+  introspectUri: ${AUTH_INTROSPECT_URL:http://auth-service:8000/oauth2/introspect}
+
+# Must reach User-Service over Docker DNS (not localhost / public API).
+service:
+  url:
+    user: ${SERVICE_URL_USER:http://user-service:8002/api/v2/account/}

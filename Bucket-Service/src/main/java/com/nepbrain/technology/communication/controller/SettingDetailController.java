@@ -1,0 +1,86 @@
+package com.nepbrain.technology.communication.controller;
+
+import com.nepbrain.technology.communication.annotation.CommunicationRestController;
+import com.nepbrain.technology.communication.payload.request.SettingDetailBulkUpdateRequest;
+import com.nepbrain.technology.communication.payload.request.SettingDetailListRequest;
+import com.nepbrain.technology.communication.payload.request.SettingDetailRequest;
+import com.nepbrain.technology.communication.service.SettingDetailService;
+import com.nepbrain.technology.communication.util.ReactiveBlocking;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import com.nepbrain.technology.core.payload.response.GlobalResponseBuilder;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
+
+import java.util.UUID;
+
+@CommunicationRestController
+@RequiredArgsConstructor
+@Tag(name = "Setting Detail", description = "Setting detail CRUD APIs")
+public class SettingDetailController {
+
+    private final SettingDetailService settingDetailService;
+
+    @PostMapping("/setting-detail/create")
+    @Operation(summary = "Create a new setting detail")
+    public Mono<ResponseEntity<GlobalResponse>> create(@Valid @RequestBody SettingDetailRequest request) {
+        return ReactiveBlocking.call(() -> {
+            settingDetailService.create(request);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(GlobalResponseBuilder.buildSuccessResponse("Setting detail created successfully."));
+        });
+    }
+
+    @PutMapping("/setting-detail/update")
+    @Operation(summary = "Update an existing setting detail")
+    public Mono<ResponseEntity<GlobalResponse>> update(@RequestHeader UUID id, @Valid @RequestBody SettingDetailRequest request) {
+        return ReactiveBlocking.call(() -> {
+            settingDetailService.update(id, request);
+            return ResponseEntity.ok(GlobalResponseBuilder.buildSuccessResponse("Setting detail updated successfully."));
+        });
+    }
+
+    @GetMapping("/setting-detail/get-by-id")
+    @Operation(summary = "Get setting detail by ID")
+    public Mono<ResponseEntity<GlobalResponse>> getById(@RequestHeader UUID id) {
+        return ReactiveBlocking.call(() -> ResponseEntity.ok(
+                GlobalResponseBuilder.buildSuccessResponse(null, settingDetailService.getById(id))));
+    }
+
+    @GetMapping("/setting-detail/get-by-key")
+    @Operation(summary = "Get setting detail by key (e.g. TRIAL_PERIOD)")
+    public Mono<ResponseEntity<GlobalResponse>> getByKey(@RequestHeader("key") String key) {
+        return ReactiveBlocking.call(() -> ResponseEntity.ok(
+                GlobalResponseBuilder.buildSuccessResponse(null, settingDetailService.getByKey(key))));
+    }
+
+    @PostMapping("/setting-detail/list")
+    @Operation(summary = "List setting details with pagination and filters")
+    public Mono<ResponseEntity<GlobalResponse>> list(@Valid @RequestBody SettingDetailListRequest request) {
+        return ReactiveBlocking.call(() -> ResponseEntity.ok(
+                GlobalResponseBuilder.buildSuccessResponse(null, settingDetailService.list(request))));
+    }
+
+    @DeleteMapping("/setting-detail/delete")
+    @Operation(summary = "Delete a setting detail")
+    public Mono<ResponseEntity<GlobalResponse>> delete(@RequestHeader UUID id) {
+        return ReactiveBlocking.call(() -> {
+            settingDetailService.delete(id);
+            return ResponseEntity.ok(GlobalResponseBuilder.buildSuccessResponse("Setting detail deleted successfully."));
+        });
+    }
+
+    @PutMapping("/setting-detail/bulk-update")
+    @Operation(summary = "Bulk update setting details by setting category ID")
+    public Mono<ResponseEntity<GlobalResponse>> bulkUpdate(@Valid @RequestBody SettingDetailBulkUpdateRequest request) {
+        return ReactiveBlocking.call(() -> {
+            settingDetailService.bulkUpdateBySettingCategoryId(request);
+            return ResponseEntity.ok(GlobalResponseBuilder.buildSuccessResponse("Setting details updated successfully."));
+        });
+    }
+}

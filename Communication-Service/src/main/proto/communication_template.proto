@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package com.nepbrain.technology.axcessfoundation.communication.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.nepbrain.technology.axcessfoundation.communication.grpc";
+option java_outer_classname = "CommunicationTemplateProto";
+
+service CommunicationTemplateService {
+  rpc SendTemplateEmail (SendTemplateEmailRequest) returns (SendTemplateEmailResponse);
+  rpc SendTemplateNotification (SendTemplateNotificationRequest) returns (SendTemplateEmailResponse);
+}
+
+message SendTemplateEmailRequest {
+  string username = 1;
+  string email = 2;
+  string name = 3;
+  string topic = 4;      // e.g. REGISTER
+  string language = 5;   // e.g. EN
+  map<string, string> data = 6;
+}
+
+message SendTemplateEmailResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message SendTemplateNotificationRequest {
+  string username = 1;
+  string email = 2;
+  string topic = 3;
+  string language = 4;
+  map<string, string> data = 5;
+  repeated string tokens = 6;
+}

@@ -1,0 +1,135 @@
+spring:
+  application:
+    name: ${COMMUNICATION_SERVICE:communication-service}
+  # OAuth2 resource server disabled: main chain uses permitAll to avoid introspect 401/NPE
+  security:
+     oauth2:
+       resourceserver:
+         opaque-token:
+           introspection-uri: ${AUTH_INTROSPECT_URL:http://localhost:8000/oauth2/introspect}
+           client-id: ${AUTH_CLIENT_ID:client}
+           client-secret: ${AUTH_CLIENT_SECRET:secret}
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME_COMMUNICATION:communication}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      pool-name: MyHikariCP
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000
+      database: 0
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: 1000
+  cache:
+    type: redis
+    redis:
+      cache-null-values: false
+      time-to-live: 43200000
+      use-key-prefix: true
+  cloud:
+    consul:
+      host: ${CONSUL_HOST:localhost}
+      port: ${CONSUL_PORT:8500}
+      discovery:
+        enabled: true
+        service-name: ${spring.application.name}
+        instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+        prefer-ip-address: true
+        acl-token: ${CONSUL_ACL_TOKEN:}
+        health-check-path: /actuator/health
+        health-check-interval: 10s
+        health-check-critical-timeout: 3m
+management:
+  health:
+    mail:
+      enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics
+        exclude: env, shutdown
+  endpoint:
+    health:
+      show-details: always
+      enabled: true
+    info:
+      enabled: true
+    metrics:
+      enabled: true
+
+otp:
+  length: 4
+  expiry-time-second: 600
+
+server:
+  port: ${SERVER_PORT_COMMUNICATION_SERVICE:8011}
+  url: ${SERVER_URL:http://localhost:8011}
+  max-http-request-header-size: 30KB
+
+grpc:
+  server:
+    address: ${GRPC_SERVER_ADDRESS:0.0.0.0}
+    port: ${COMMUNICATION_GRPC_PORT:8911}
+  client:
+    user-service:
+      address: ${USER_GRPC_ADDRESS:static://localhost:8901}
+      negotiationType: PLAINTEXT
+services:
+  master: https://demo-gateway.jojolapatech.hrmsuite.com.np/api/v2/master/
+  user: https://demo-gateway.jojolapatech.hrmsuite.com.np/api/v2/user/
+  customer: https://demo-gateway.jojolapatech.hrmsuite.com.np/api/v2/customer/
+
+# Email: AWS SES only (set MAIL_AWS_ACCESS_KEY, MAIL_AWS_SECRET_KEY, MAIL_AWS_REGION, MAIL_FROM)
+mail:
+  aws-access-key: ${MAIL_AWS_ACCESS_KEY:}
+  aws-secret-key: ${MAIL_AWS_SECRET_KEY:}
+  aws-region: ${MAIL_AWS_REGION:ap-south-1}
+  from: ${MAIL_FROM:noreply@tendernotice.com.np}
+
+sms:
+  username: RemitTest
+  password: Remit@Test123
+  organizationCode: RemitTest
+
+aes:
+  encryption:
+    algorithm: AES
+    padding: AES/ECB/PKCS5Padding
+    secretKey: ${ENCRYPTION_SECRET_KEY:LchiQkmHkgmjgOEF}
+    #  xsrfToken: 7GX6aZsIK3IJl8L0mrYR
+    xsrfToken: ${ENCRYPTION_XSRF_TOKEN:ENC(0GkBA/rY3i+QQk1UJ1qFGWYZ+A6QYPCBEMUbCYmSmpxhD73HQuvwlLvEUYyvNENdLm/xgD56X2hV/PnzuuS1nA==)}
+
+jasypt:
+  encryptor:
+    password: ${ENCRYPTION_PASSWORD:Nepal@123}
+    algorithm: PBEWithHMACSHA512AndAES_256
+
+firebase:
+  batchSize: 40
+
+# Initial data loaders run on startup when enabled (messages from CSV, settings from enums).
+communication:
+  initial-data:
+    load-on-startup: true
+    hrm:
+      load-on-startup: true

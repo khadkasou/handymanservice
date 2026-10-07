@@ -1,0 +1,132 @@
+spring:
+  application:
+    name: ${HANDYMAN_SERVICE:Handyman-Service}
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME_HANDYMAN:handyman}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: HandymanHikariPool
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 20000
+      leak-detection-threshold: 60000
+      auto-commit: true
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    defer-datasource-initialization: true
+  security:
+    oauth2:
+      resourceserver:
+        opaque-token:
+          introspection-uri: ${AUTH_INTROSPECT_URL:http://localhost:8000/oauth2/introspect}
+          client-id: ${AUTH_CLIENT_ID:client}
+          client-secret: ${AUTH_SECRET:secret}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: notification-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      enable-auto-commit: false
+      properties:
+        max.poll.records: 500
+        session.timeout.ms: 15000
+        heartbeat.interval.ms: 5000
+        isolation.level: read_committed
+    listener:
+      ack-mode: manual
+      concurrency: 3
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      username: ${REDIS_USERNAME}
+      password: ${REDIS_PASSWORD}
+      timeout: 2000
+      database: 0
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: 1000
+  cache:
+    type: redis
+    redis:
+      cache-null-values: false
+      time-to-live: 43200000
+      use-key-prefix: true
+  cloud:
+    consul:
+      host: ${CONSUL_HOST:127.0.0.1}
+      port: ${CONSUL_PORT:8500}
+      discovery:
+        enabled: true
+        service-name: ${spring.application.name}
+        instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+        prefer-ip-address: true
+        acl-token: ${CONSUL_ACL_TOKEN:}
+        health-check-path: /actuator/health
+        health-check-interval: 10s
+        health-check-critical-timeout: 3m
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      bucket-service:
+        register-health-indicator: true
+        failure-rate-threshold: 50
+        minimum-number-of-calls: 10
+        sliding-window-size: 10
+        sliding-window-type: COUNT_BASED
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 5
+        automatic-transition-from-open-to-half-open-enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env,loggers,threaddump,heapdump
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+  metrics:
+    enable:
+      all: true
+
+server:
+  port: ${SERVER_PORT_HANDYMAN_SERVICE:8020}
+  url: ${SERVER_URL:http://localhost:8020}
+  shutdown: graceful
+
+external:
+  auth-service: http://auth-service/api/v2/user
+
+kafka:
+  otp-topic: otp
+  activity-topic: activity
+  credential-topic: credential
+  notification-topic: notification
+
+aes:
+  algorithm: AES
+  padding: AES/ECB/PKCS5Padding
+  secret: ${AES_SECRET:LchiQkmHkgmjgOEF}
+
+bucket:
+  url: /api/v2/bucket/document/retrieve

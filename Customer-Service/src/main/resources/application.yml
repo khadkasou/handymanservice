@@ -1,0 +1,102 @@
+spring:
+  application:
+    name: Customer-Service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/customer
+    username: postgres
+    password: password
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      pool-name: MyHikariCP
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      org:
+        hibernate:
+          envers:
+            audit_table_suffix: _AUDIT
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+  security:
+    oauth2:
+      resourceserver:
+        opaque-token:
+          introspection-uri: http://localhost:8080/oauth2/introspect
+          client-id: ${AUTH_CLIENT_ID:client}
+          client-secret: ${AUTH_CLIENT_SECRET:secret}
+  kafka:
+    producer:
+      bootstrap-servers: 172.20.23.45:9092
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      group-id: notification_group
+
+server:
+  port: 8004
+  url: http://localhost:${server.port}
+  max-http-request-header-size: 300KB
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      remittance-service:
+        register-health-indicator: true
+        event-consumer-buffer-size: 100
+        failure-rate-threshold: 50
+        minimum-number-of-calls: 5
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        permitted-number-of-calls-in-half-open-state: 3
+        sliding-window-size: 10
+        sliding-window-type: COUNT_BASED
+        ignore-exceptions:
+          - java.lang.Exception
+          - java.lang.RuntimeException
+    circuit-breaker-aspect-order: 1
+  retry:
+    instances:
+      remittance-service:
+        max-attempts: 3
+        wait-duration: 5s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+        ignore-exceptions:
+          - java.lang.Exception
+          - java.lang.RuntimeException
+
+kafka:
+  topic:
+    notification: NOTIFICATION-LOCAL
+    login: LOGIN-LOCAL
+    application: APPLICATION-LOCAL
+
+service:
+  url:
+    master: http://master-service:8004/api/v2/master/
+    account: http://account-service:8006/api/v2/account/
+    customer: http://customer-service:8001/api/v2/customer/
+
+aes:
+  encryption:
+    algorithm: AES
+    padding: AES/ECB/PKCS5Padding
+    secretKey: ${ENCRYPTION_SECRET_KEY:LchiQkmHkgmjgOEF}
+    #  xsrfToken: 7GX6aZsIK3IJl8L0mrYR
+    xsrfToken: ${ENCRYPTION_XSRF_TOKEN:ENC(0GkBA/rY3i+QQk1UJ1qFGWYZ+A6QYPCBEMUbCYmSmpxhD73HQuvwlLvEUYyvNENdLm/xgD56X2hV/PnzuuS1nA==)}
+
+jasypt:
+  encryptor:
+    password: ${ENCRYPTION_PASSWORD:Nepal@123}
+    algorithm: PBEWithHMACSHA512AndAES_256

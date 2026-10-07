@@ -1,0 +1,21 @@
+{
+  "server": true,
+  "bootstrap_expect": 1,
+  "client_addr": "0.0.0.0",
+  "ui_config": {
+    "enabled": true
+  },
+  "acl": {
+    "enabled": true,
+    "default_policy": "deny",
+    "enable_token_persistence": true,
+    "tokens": {
+      "initial_management": "e7637483-ce60-4da0-b070-ea3a58a28856",
+      "agent": "e7637483-ce60-4da0-b070-ea3a58a28856"
+    }
+  },
+  "performance": {
+    "raft_multiplier": 1
+  },
+  "server_rejoin_age_max": "8760h"
+}

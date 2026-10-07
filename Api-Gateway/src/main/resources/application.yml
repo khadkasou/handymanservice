@@ -1,0 +1,355 @@
+spring:
+  application:
+    name: API Gateway
+
+  http:
+    codecs:
+      max-in-memory-size: 50MB
+
+  security:
+    oauth2:
+      resourceserver:
+        opaque-token:
+          # Env: AUTH_INTROSPECT_URL, AUTH_CLIENT_ID, AUTH_SECRET (or AUTH_CLIENT_SECRET)
+          # Auth-Service (OAuth2 introspect) remains on :8000 — Flutter domain auth APIs go to Handyman-Service.
+          introspection-uri: ${AUTH_INTROSPECT_URL:http://localhost:8000/oauth2/introspect}
+          client-id: ${AUTH_CLIENT_ID:client}
+          client-secret: ${AUTH_CLIENT_SECRET:${AUTH_SECRET:secret}}
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      username: default
+      password: admin
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: true
+          routes:
+            # ---------------------------------------------------------------------------
+            # Handyman domain APIs → Handyman-Service (Consul: handyman-service)
+            # Flutter client uses /api/{endpoint}; gateway exposes /api/v2/{domain}/**
+            # ---------------------------------------------------------------------------
+            - id: HANDYMAN-SERVICE-AUTH
+              uri: ${HANDYMAN_SERVICE_URI:lb://handyman-service}
+              predicates:
+                - Path=/api/v2/auth/**
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 100
+                    redis-rate-limiter.burstCapacity: 200
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@simpleClientAddressResolver}"
+
+            - id: HANDYMAN-SERVICE-BOOKING
+              uri: ${HANDYMAN_SERVICE_URI:lb://handyman-service}
+              predicates:
+                - Path=/api/v2/booking/**
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 100
+                    redis-rate-limiter.burstCapacity: 200
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@simpleClientAddressResolver}"
+
+            - id: HANDYMAN-SERVICE-CATALOG
+              uri: ${HANDYMAN_SERVICE_URI:lb://handyman-service}
+              predicates:
+                - Path=/api/v2/catalog/**
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 100
+                    redis-rate-limiter.burstCapacity: 200
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@simpleClientAddressResolver}"
+
+            - id: HANDYMAN-SERVICE-PROVIDER
+              uri: ${HANDYMAN_SERVICE_URI:lb://handyman-service}
+              predicates:
+                - Path=/api/v2/provider/**
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 100
+                    redis-rate-limiter.burstCapacity: 200
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@simpleClientAddressResolver}"
+
+            - id: HANDYMAN-SERVICE-PAYMENT
+              uri: ${HANDYMAN_SERVICE_URI:lb://handyman-service}
+              predicates:
+                - Path=/api/v2/payment/**
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 100
+                    redis-rate-limiter.burstCapacity: 200
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@simpleClientAddressResolver}"
+
+            - id: HANDYMAN-SERVICE-POSTJOB
+              uri: ${HANDYMAN_SERVICE_URI:lb://handyman-service}
+              predicates:
+                - Path=/api/v2/postjob/**
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 100
+                    redis-rate-limiter.burstCapacity: 200
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@simpleClientAddressResolver}"
+
+            - id: HANDYMAN-SERVICE-REVIEW
+              uri: ${HANDYMAN_SERVICE_URI:lb://handyman-service}
+              predicates:
+                - Path=/api/v2/review/**
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 100
+                    redis-rate-limiter.burstCapacity: 200
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@simpleClientAddressResolver}"
+
+            - id: HANDYMAN-SERVICE-HELPDESK
+              uri: ${HANDYMAN_SERVICE_URI:lb://handyman-service}
+              predicates:
+                - Path=/api/v2/helpdesk/**
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 100
+                    redis-rate-limiter.burstCapacity: 200
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@simpleClientAddressResolver}"
+
+            - id: HANDYMAN-SERVICE-GEO
+              uri: ${HANDYMAN_SERVICE_URI:lb://handyman-service}
+              predicates:
+                - Path=/api/v2/geo/**
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 100
+                    redis-rate-limiter.burstCapacity: 200
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@simpleClientAddressResolver}"
+
+            - id: HANDYMAN-SERVICE-CONFIG
+              uri: ${HANDYMAN_SERVICE_URI:lb://handyman-service}
+              predicates:
+                - Path=/api/v2/config/**
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 100
+                    redis-rate-limiter.burstCapacity: 200
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@simpleClientAddressResolver}"
+
+            - id: HANDYMAN-SERVICE-NOTIFICATION
+              uri: ${HANDYMAN_SERVICE_URI:lb://handyman-service}
+              predicates:
+                - Path=/api/v2/notification/**
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 100
+                    redis-rate-limiter.burstCapacity: 200
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@simpleClientAddressResolver}"
+
+            - id: HANDYMAN-SERVICE-BLOG
+              uri: ${HANDYMAN_SERVICE_URI:lb://handyman-service}
+              predicates:
+                - Path=/api/v2/blog/**
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 100
+                    redis-rate-limiter.burstCapacity: 200
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@simpleClientAddressResolver}"
+
+            # Catch-all for Handyman-Service direct prefix / handyman-service/**
+            - id: HANDYMAN-SERVICE
+              uri: ${HANDYMAN_SERVICE_URI:lb://handyman-service}
+              predicates:
+                - Path=/handyman-service/**, /api/v2/handyman/**
+              filters:
+                - RewritePath=/handyman-service/(?<path>.*), /$\{path}
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 100
+                    redis-rate-limiter.burstCapacity: 200
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@simpleClientAddressResolver}"
+
+            # ---------------------------------------------------------------------------
+            # Supporting services (copied from erp-solution; packages remain com.nepbrain.technology)
+            # ---------------------------------------------------------------------------
+            # OAuth2 token / introspect only — Flutter login/register live under /api/v2/auth/**
+            - id: AUTH-SERVICE
+              uri: lb://auth-service
+              predicates:
+                - Path=/oauth2/**, /auth-service/**
+              filters:
+                - RewritePath=/auth-service/(?<path>.*), /$\{path}
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 100
+                    redis-rate-limiter.burstCapacity: 200
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@simpleClientAddressResolver}"
+
+            - id: BUCKET-SERVICE
+              uri: lb://bucket-service
+              predicates:
+                - Path=/api/v2/bucket/**, /api/v2/public/bucket/**, /bucket-service/**
+              filters:
+                - RewritePath=/bucket-service/(?<path>.*), /$\{path}
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 100
+                    redis-rate-limiter.burstCapacity: 200
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@simpleClientAddressResolver}"
+
+            - id: COMMUNICATION-SERVICE
+              uri: lb://communication-service
+              predicates:
+                - Path=/api/v2/communication/**, /api/v2/public/communication/**, /communication-service/**
+              filters:
+                - RewritePath=/communication-service/(?<path>.*), /$\{path}
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 100
+                    redis-rate-limiter.burstCapacity: 200
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@simpleClientAddressResolver}"
+
+            # Optional: ERP Customer-Service (most customer UX is in Handyman-Service)
+            - id: CUSTOMER-SERVICE
+              uri: lb://customer-service
+              predicates:
+                - Path=/api/v2/customer/**, /customer-service/**
+              filters:
+                - RewritePath=/customer-service/(?<path>.*), /$\{path}
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: 100
+                    redis-rate-limiter.burstCapacity: 200
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@simpleClientAddressResolver}"
+
+            - id: openapi
+              uri: http://localhost:8090
+              predicates:
+                - Path=/v3/api-docs/**
+              filters:
+                - RewritePath=/v3/api-docs/(?<path>.*), /$\{path}/v3/api-docs
+          default-filters:
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials Access-Control-Expose-Headers RETAIN_FIRST
+
+    consul:
+      host: localhost
+      port: 8500
+      discovery:
+        enabled: true
+        service-name: ${spring.application.name}
+        instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+        prefer-ip-address: true
+        acl-token: e7637483-ce60-4da0-b070-ea3a58a28856
+        health-check-path: /actuator/health
+        health-check-interval: 10s
+        health-check-critical-timeout: 3m
+
+springdoc:
+  swagger-ui:
+    urls:
+      - name: Handyman-Service
+        url: /v3/api-docs/handyman-service
+      - name: Auth-Service
+        url: /v3/api-docs/auth-service
+      - name: Bucket-Service
+        url: /v3/api-docs/bucket-service
+      - name: Communication-Service
+        url: /v3/api-docs/communication-service
+      - name: Customer-Service
+        url: /v3/api-docs/customer-service
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      api-gateway:
+        failureRateThreshold: 50
+        waitDurationInOpenState: 5s
+        permittedNumberOfCallsInHalfOpenState: 3
+        minimumNumberOfCalls: 5
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        eventConsumerBufferSize: 10
+        registerHealthIndicator: true
+  retry:
+    instances:
+      api-gateway:
+        maxAttempts: 3
+        waitDuration: 1s
+  timelimiter:
+    instances:
+      api-gateway:
+        timeoutDuration: 5s
+        cancelRunningFuture: true
+
+server:
+  port: 8090
+  shutdown: graceful
+  max-http-request-header-size: 30KB
+
+auth:
+  server:
+    client: ${AUTH_CLIENT_ID:client}
+    secret: ${AUTH_CLIENT_SECRET:${AUTH_SECRET:secret}}
+  introspect:
+    url: ${AUTH_INTROSPECT_URL:http://localhost:8000/oauth2/introspect}
+
+aes:
+  algorithm: AES
+  padding: AES/ECB/PKCS5Padding
+  secret: LchiQkmHkgmjgOEF
+  xsrfToken: 7GX6aZsIK3IJl8L0mrYR
+
+jasypt:
+  encryptor:
+    password: Nepal@123
+    algorithm: PBEWithHMACSHA512AndAES_256
+
+rate-limit:
+  capacity: 1000
+  refill-period: 1
+  block-duration: 1
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+  metrics:
+    enable:
+      all: true

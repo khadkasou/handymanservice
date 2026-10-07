@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package com.nepbrain.technology.axcessfoundation.communication.grpc;
+
+option java_multiple_files = true;
+option java_package = "com.nepbrain.technology.axcessfoundation.communication.grpc";
+option java_outer_classname = "CommunicationOtpProto";
+
+// OTP service for generating and verifying one-time passwords (e.g. forgot password).
+service OtpService {
+  // Generate an OTP and dispatch it via Communication-Service (email/SMS/notification).
+  rpc GenerateOtp (GenerateOtpRequest) returns (OtpResponse);
+
+  // Verify an OTP for a given email and topic.
+  rpc VerifyOtp (VerifyOtpRequest) returns (OtpResponse);
+}
+
+message GenerateOtpRequest {
+  // Email address (mandatory; also used as username in OTP entity).
+  string email = 1;
+
+  // Topic name, e.g. "FORGOT_PASSWORD" (mandatory for OTP flow).
+  string topic = 2;
+
+  // Language code, e.g. "EN". Defaults handled on server if empty.
+  string language = 3;
+
+  // Optional mobile number (for SMS channel when enabled).
+  string mobile = 4;
+
+  // Optional FCM token (for push notification channel when enabled).
+  string fcm_token = 5;
+}
+
+message VerifyOtpRequest {
+  // Email address (username in OTP entity).
+  string email = 1;
+
+  // Topic name, e.g. "FORGOT_PASSWORD".
+  string topic = 2;
+
+  // One-time password code to verify.
+  string code = 3;
+}
+
+message OtpResponse {
+  // Whether the operation succeeded.
+  bool success = 1;
+
+  // Optional human-readable message.
+  string message = 2;
+}
+
