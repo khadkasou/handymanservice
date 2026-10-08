@@ -1,96 +1,281 @@
 package com.nepbrain.technology.payment.service.impl;
+
 import com.nepbrain.technology.core.enums.StatusEnum;
 import com.nepbrain.technology.core.exception.GlobalException;
-import com.nepbrain.technology.payment.entity.*;
-import com.nepbrain.technology.payment.payload.request.*;
-import com.nepbrain.technology.payment.payload.response.*;
-import com.nepbrain.technology.payment.repository.*;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import com.nepbrain.technology.core.payload.response.GlobalResponseBuilder;
+import com.nepbrain.technology.payment.entity.BankEntity;
+import com.nepbrain.technology.payment.entity.PaymentEntity;
+import com.nepbrain.technology.payment.entity.PaymentGatewayEntity;
+import com.nepbrain.technology.payment.entity.WalletEntity;
+import com.nepbrain.technology.payment.entity.WalletTransactionEntity;
+import com.nepbrain.technology.payment.enums.ErrorCodeEnum;
+import com.nepbrain.technology.payment.payload.request.BankRequest;
+import com.nepbrain.technology.payment.payload.request.PaymentRequest;
+import com.nepbrain.technology.payment.payload.request.WalletTopUpRequest;
+import com.nepbrain.technology.payment.payload.request.WithdrawRequest;
+import com.nepbrain.technology.payment.payload.response.BankResponse;
+import com.nepbrain.technology.payment.payload.response.PaymentGatewayResponse;
+import com.nepbrain.technology.payment.payload.response.PaymentResponse;
+import com.nepbrain.technology.payment.payload.response.WalletResponse;
+import com.nepbrain.technology.payment.payload.response.WalletTransactionResponse;
+import com.nepbrain.technology.payment.repository.BankRepository;
+import com.nepbrain.technology.payment.repository.PaymentGatewayRepository;
+import com.nepbrain.technology.payment.repository.PaymentRepository;
+import com.nepbrain.technology.payment.repository.WalletRepository;
+import com.nepbrain.technology.payment.repository.WalletTransactionRepository;
 import com.nepbrain.technology.payment.service.PaymentService;
-import lombok.RequiredArgsConstructor; import org.modelmapper.ModelMapper;
-import org.springframework.stereotype.Service; import org.springframework.transaction.annotation.Transactional;
-import java.math.BigDecimal; import java.time.LocalDateTime; import java.util.List; import java.util.UUID;
-import java.util.stream.Collectors;
-import static com.nepbrain.technology.payment.enums.ErrorCodeEnum.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-@Service @RequiredArgsConstructor @Transactional
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
 public class PaymentServiceImpl implements PaymentService {
+
     private final PaymentRepository paymentRepository;
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
     private final BankRepository bankRepository;
     private final PaymentGatewayRepository paymentGatewayRepository;
-    private final ModelMapper modelMapper;
 
-    @Override public PaymentResponse savePayment(PaymentRequest request) {
-        PaymentEntity e = modelMapper.map(request, PaymentEntity.class);
-        e.setDatetime(LocalDateTime.now().toString());
-        return modelMapper.map(paymentRepository.save(e), PaymentResponse.class);
+    @Override
+    public GlobalResponse savePayment(PaymentRequest request) {
+        PaymentEntity payment = new PaymentEntity();
+        payment.setBookingId(request.getBookingId());
+        payment.setCustomerId(request.getCustomerId());
+        payment.setAmount(request.getAmount());
+        payment.setPaymentType(request.getPaymentType());
+        payment.setTxnId(request.getTxnId());
+        payment.setPaymentStatus(request.getPaymentStatus());
+        payment.setDatetime(LocalDateTime.now().toString());
+        return GlobalResponseBuilder.buildSuccessResponse(
+                "message.payment.save.success", toPaymentResponse(paymentRepository.save(payment)));
     }
-    @Override @Transactional(readOnly = true)
-    public List<PaymentResponse> paymentList(UUID bookingId) {
-        return paymentRepository.findByBookingId(bookingId).stream().map(p -> modelMapper.map(p, PaymentResponse.class)).collect(Collectors.toList());
+
+    @Override
+    public GlobalResponse paymentList(UUID bookingId) {
+        List<PaymentResponse> payments = new ArrayList<>();
+        for (PaymentEntity payment : paymentRepository.findByBookingId(bookingId)) {
+            payments.add(toPaymentResponse(payment));
+        }
+        return GlobalResponseBuilder.buildSuccessResponse(payments);
     }
-    @Override @Transactional(readOnly = true)
-    public List<PaymentGatewayResponse> paymentGateways() {
-        return paymentGatewayRepository.findAll().stream().map(g -> {
-            PaymentGatewayResponse r = modelMapper.map(g, PaymentGatewayResponse.class);
-            r.setStatus(g.getStatus() != null ? g.getStatus().name() : null); return r;
-        }).collect(Collectors.toList());
+
+    @Override
+    public GlobalResponse paymentGateways() {
+        List<PaymentGatewayResponse> gateways = new ArrayList<>();
+        for (PaymentGatewayEntity gateway : paymentGatewayRepository.findAll()) {
+            String status = gateway.getStatus() == null ? null : gateway.getStatus().name();
+            gateways.add(PaymentGatewayResponse.builder()
+                    .id(gateway.getId())
+                    .title(gateway.getTitle())
+                    .type(gateway.getType())
+                    .isTest(gateway.getIsTest())
+                    .status(status)
+                    .build());
+        }
+        return GlobalResponseBuilder.buildSuccessResponse(gateways);
     }
-    @Override public WalletResponse userWalletBalance(UUID userId) {
-        WalletEntity w = walletRepository.findByUserId(userId).orElseGet(() ->
-                walletRepository.save(WalletEntity.builder().userId(userId).amount(BigDecimal.ZERO).build()));
-        return modelMapper.map(w, WalletResponse.class);
+
+    @Override
+    public GlobalResponse userWalletBalance(UUID userId) {
+        WalletEntity wallet = walletRepository.findByUserId(userId).orElse(null);
+        if (wallet == null) {
+            wallet = new WalletEntity();
+            wallet.setUserId(userId);
+            wallet.setAmount(BigDecimal.ZERO);
+            wallet = walletRepository.save(wallet);
+        }
+        return GlobalResponseBuilder.buildSuccessResponse(toWalletResponse(wallet));
     }
-    @Override @Transactional(readOnly = true)
-    public List<WalletTransactionResponse> walletHistory(UUID userId) {
-        return walletTransactionRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
-                .map(t -> modelMapper.map(t, WalletTransactionResponse.class)).collect(Collectors.toList());
+
+    @Override
+    public GlobalResponse walletHistory(UUID userId) {
+        List<WalletTransactionResponse> history = new ArrayList<>();
+        for (WalletTransactionEntity txn : walletTransactionRepository.findByUserIdOrderByCreatedAtDesc(userId)) {
+            history.add(WalletTransactionResponse.builder()
+                    .id(txn.getId())
+                    .userId(txn.getUserId())
+                    .amount(txn.getAmount())
+                    .type(txn.getType())
+                    .activityType(txn.getActivityType())
+                    .datetime(txn.getDatetime())
+                    .build());
+        }
+        return GlobalResponseBuilder.buildSuccessResponse(history);
     }
-    @Override public WalletResponse walletTopUp(WalletTopUpRequest request) {
-        WalletEntity w = walletRepository.findByUserId(request.getUserId()).orElseGet(() ->
-                WalletEntity.builder().userId(request.getUserId()).amount(BigDecimal.ZERO).build());
-        w.setAmount(w.getAmount().add(request.getAmount()));
-        w = walletRepository.save(w);
-        walletTransactionRepository.save(WalletTransactionEntity.builder()
-                .userId(request.getUserId()).walletId(w.getId()).amount(request.getAmount())
-                .type("credit").activityType("top_up").datetime(LocalDateTime.now().toString()).build());
-        return modelMapper.map(w, WalletResponse.class);
+
+    @Override
+    @Transactional
+    public GlobalResponse walletTopUp(WalletTopUpRequest request) {
+        WalletEntity wallet = walletRepository.findByUserId(request.getUserId()).orElse(null);
+        if (wallet == null) {
+            wallet = new WalletEntity();
+            wallet.setUserId(request.getUserId());
+            wallet.setAmount(BigDecimal.ZERO);
+        }
+        wallet.setAmount(wallet.getAmount().add(request.getAmount()));
+        wallet = walletRepository.save(wallet);
+
+        WalletTransactionEntity txn = new WalletTransactionEntity();
+        txn.setUserId(request.getUserId());
+        txn.setWalletId(wallet.getId());
+        txn.setAmount(request.getAmount());
+        txn.setType("credit");
+        txn.setActivityType("top_up");
+        txn.setDatetime(LocalDateTime.now().toString());
+        walletTransactionRepository.save(txn);
+        return GlobalResponseBuilder.buildSuccessResponse(
+                "message.payment.topup.success", toWalletResponse(wallet));
     }
-    @Override public void withdrawMoney(WithdrawRequest request) {
-        WalletEntity w = walletRepository.findByUserId(request.getUserId()).orElseThrow(() -> new GlobalException(PAY002.name()));
-        if (w.getAmount().compareTo(request.getAmount()) < 0) throw new GlobalException(PAY002.name(), "Insufficient wallet balance");
-        w.setAmount(w.getAmount().subtract(request.getAmount()));
-        walletRepository.save(w);
-        walletTransactionRepository.save(WalletTransactionEntity.builder()
-                .userId(request.getUserId()).walletId(w.getId()).amount(request.getAmount())
-                .type("debit").activityType("withdraw").datetime(LocalDateTime.now().toString()).build());
+
+    @Override
+    @Transactional
+    public GlobalResponse withdrawMoney(WithdrawRequest request) {
+        WalletEntity wallet = walletRepository.findByUserId(request.getUserId())
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.PAY002.name()));
+        if (wallet.getAmount().compareTo(request.getAmount()) < 0) {
+            throw new GlobalException(ErrorCodeEnum.PAY002.name(), "Insufficient wallet balance");
+        }
+        wallet.setAmount(wallet.getAmount().subtract(request.getAmount()));
+        walletRepository.save(wallet);
+
+        WalletTransactionEntity txn = new WalletTransactionEntity();
+        txn.setUserId(request.getUserId());
+        txn.setWalletId(wallet.getId());
+        txn.setAmount(request.getAmount());
+        txn.setType("debit");
+        txn.setActivityType("withdraw");
+        txn.setDatetime(LocalDateTime.now().toString());
+        walletTransactionRepository.save(txn);
+        return GlobalResponseBuilder.buildSuccessResponse("message.payment.withdraw.success");
     }
-    @Override public BankResponse saveBank(BankRequest request) {
-        BankEntity e = request.getId() != null
-                ? bankRepository.findById(request.getId()).orElseThrow(() -> new GlobalException(PAY003.name()))
-                : BankEntity.builder().build();
-        if (request.getBankName() != null) e.setBankName(request.getBankName());
-        if (request.getBranchName() != null) e.setBranchName(request.getBranchName());
-        if (request.getAccountNumber() != null) e.setAccountNumber(request.getAccountNumber());
-        if (request.getIfscNo() != null) e.setIfscNo(request.getIfscNo());
-        if (request.getAccountHolderName() != null) e.setAccountHolderName(request.getAccountHolderName());
-        if (request.getUserId() != null) e.setUserId(request.getUserId());
-        if (request.getIsDefault() != null) e.setIsDefault(request.getIsDefault());
-        if (e.getStatus() == null) e.setStatus(StatusEnum.ACTIVE);
-        return modelMapper.map(bankRepository.save(e), BankResponse.class);
+
+    @Override
+    public GlobalResponse saveBank(BankRequest request) {
+        BankEntity bank;
+        if (request.getId() != null) {
+            bank = bankRepository.findById(request.getId())
+                    .orElseThrow(() -> new GlobalException(ErrorCodeEnum.PAY003.name()));
+        } else {
+            bank = new BankEntity();
+        }
+        if (request.getBankName() != null) {
+            bank.setBankName(request.getBankName());
+        }
+        if (request.getBranchName() != null) {
+            bank.setBranchName(request.getBranchName());
+        }
+        if (request.getAccountNumber() != null) {
+            bank.setAccountNumber(request.getAccountNumber());
+        }
+        if (request.getIfscNo() != null) {
+            bank.setIfscNo(request.getIfscNo());
+        }
+        if (request.getAccountHolderName() != null) {
+            bank.setAccountHolderName(request.getAccountHolderName());
+        }
+        if (request.getUserId() != null) {
+            bank.setUserId(request.getUserId());
+        }
+        if (request.getIsDefault() != null) {
+            bank.setIsDefault(request.getIsDefault());
+        }
+        if (bank.getStatus() == null) {
+            bank.setStatus(StatusEnum.ACTIVE);
+        }
+        return GlobalResponseBuilder.buildSuccessResponse(
+                "message.payment.bank.saved.success", toBankResponse(bankRepository.save(bank)));
     }
-    @Override @Transactional(readOnly = true)
-    public List<BankResponse> userBankDetail(UUID userId) {
-        return bankRepository.findByUserId(userId).stream().map(b -> modelMapper.map(b, BankResponse.class)).collect(Collectors.toList());
+
+    @Override
+    public GlobalResponse userBankDetail(UUID userId) {
+        List<BankResponse> banks = new ArrayList<>();
+        for (BankEntity bank : bankRepository.findByUserId(userId)) {
+            if (bank.getStatus() == StatusEnum.INACTIVE) {
+                continue;
+            }
+            banks.add(toBankResponse(bank));
+        }
+        return GlobalResponseBuilder.buildSuccessResponse(banks);
     }
-    @Override public void defaultBank(UUID bankId) {
-        BankEntity bank = bankRepository.findById(bankId).orElseThrow(() -> new GlobalException(PAY003.name()));
-        bankRepository.findByUserId(bank.getUserId()).forEach(b -> { b.setIsDefault(false); bankRepository.save(b); });
-        bank.setIsDefault(true); bankRepository.save(bank);
+
+    @Override
+    @Transactional
+    public GlobalResponse defaultBank(UUID bankId) {
+        BankEntity selected = bankRepository.findById(bankId)
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.PAY003.name()));
+        if (selected.getStatus() == StatusEnum.INACTIVE) {
+            throw new GlobalException(ErrorCodeEnum.PAY003.name(), HttpStatus.BAD_REQUEST);
+        }
+        for (BankEntity bank : bankRepository.findByUserId(selected.getUserId())) {
+            bank.setIsDefault(false);
+            bankRepository.save(bank);
+        }
+        selected.setIsDefault(true);
+        bankRepository.save(selected);
+        return GlobalResponseBuilder.buildSuccessResponse("message.payment.bank.default.success");
     }
-    @Override public void deleteBank(UUID bankId) {
-        if (!bankRepository.existsById(bankId)) throw new GlobalException(PAY003.name());
-        bankRepository.deleteById(bankId);
+
+    @Override
+    public GlobalResponse changeBankStatus(UUID bankId, StatusEnum status) {
+        if (status != StatusEnum.ACTIVE && status != StatusEnum.INACTIVE) {
+            throw new GlobalException(ErrorCodeEnum.PAY005.name());
+        }
+        BankEntity bank = bankRepository.findById(bankId)
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.PAY003.name(), HttpStatus.BAD_REQUEST));
+        bank.setStatus(status);
+        if (status == StatusEnum.INACTIVE) {
+            bank.setIsDefault(false);
+        }
+        return GlobalResponseBuilder.buildSuccessResponse(
+                "message.payment.bank.status.success", toBankResponse(bankRepository.save(bank)));
+    }
+
+    @Override
+    public GlobalResponse deleteBank(UUID bankId) {
+        return changeBankStatus(bankId, StatusEnum.INACTIVE);
+    }
+
+    private PaymentResponse toPaymentResponse(PaymentEntity payment) {
+        return PaymentResponse.builder()
+                .id(payment.getId())
+                .bookingId(payment.getBookingId())
+                .customerId(payment.getCustomerId())
+                .amount(payment.getAmount())
+                .paymentType(payment.getPaymentType())
+                .txnId(payment.getTxnId())
+                .paymentStatus(payment.getPaymentStatus())
+                .datetime(payment.getDatetime())
+                .build();
+    }
+
+    private WalletResponse toWalletResponse(WalletEntity wallet) {
+        return WalletResponse.builder()
+                .id(wallet.getId())
+                .userId(wallet.getUserId())
+                .amount(wallet.getAmount())
+                .build();
+    }
+
+    private BankResponse toBankResponse(BankEntity bank) {
+        return BankResponse.builder()
+                .id(bank.getId())
+                .userId(bank.getUserId())
+                .bankName(bank.getBankName())
+                .branchName(bank.getBranchName())
+                .accountNumber(bank.getAccountNumber())
+                .ifscNo(bank.getIfscNo())
+                .accountHolderName(bank.getAccountHolderName())
+                .isDefault(bank.getIsDefault())
+                .build();
     }
 }

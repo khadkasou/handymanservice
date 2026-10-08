@@ -13,6 +13,7 @@ Package naming stays **`com.nepbrain.technology`** for shared libraries and cons
 | Item | Value |
 |------|--------|
 | Flutter app | `Handyman Service v11.14.3` |
+| Next.js web | `frontend` (customer UI on port 3000) |
 | Legacy base path | `BASE_URL = $DOMAIN_URL/api/` → calls like `/api/login` |
 | Target gateway | `http://localhost:8090` |
 | Target API style | `/api/v2/{domain}/{endpoint}` |
@@ -116,7 +117,7 @@ Full table: [docs/MIGRATION.md](docs/MIGRATION.md).
 ### Requirements
 
 - **Java 25** (`JAVA_HOME` → e.g. `C:\Program Files\Java\jdk-25.0.4`)
-- Gradle wrapper **8.14.2** (bundled per service)
+- Gradle wrapper **9.8.1** (bundled per service)
 - Docker (Postgres, Redis, Consul, MinIO)
 
 ### 1. Infrastructure
@@ -143,15 +144,46 @@ gradle-clean-build.bat Api-Gateway
 gradle-clean-build.bat Auth-Service
 ```
 
-### 3. Start order (typical)
+### 3. JVM and process environment
 
-1. Docker infra (Consul, Redis, Postgres, MinIO)  
-2. Auth-Service (optional until opaque tokens are required)  
-3. Handyman-Service (register in Consul as `handyman-service`)  
-4. Bucket-Service / Communication-Service as needed  
+Postgres on this host rejects `Asia/Katmandu`. Start every Java process with:
+
+```bat
+set JAVA_TOOL_OPTIONS=-Duser.timezone=UTC
+set JAVA_HOME=C:\Program Files\Java\jdk-25
+```
+
+Consul registration uses the process environment. Set the name explicitly and clear a leaked value before each service:
+
+| Service | `SPRING_CLOUD_CONSUL_DISCOVERY_SERVICE_NAME` | Port |
+|---------|-----------------------------------------------|------|
+| Handyman-Service | `handyman-service` | 8020 |
+| Api-Gateway | `API-Gateway` | 8090 |
+| Auth-Service | `auth-service` | 8000 |
+| Customer-Service | `customer-service` | 8004 |
+| Bucket-Service | `bucket-service` | 8006 |
+| Communication-Service | `communication-service` | 8011 |
+
+Redis in Docker (`edx-redis`) has no username and no password. If the gateway logs `AUTH failed`, set `SPRING_DATA_REDIS_USERNAME` and `SPRING_DATA_REDIS_PASSWORD` to empty.
+
+Local database password matches Docker (`password`). Override it with `DB_PASSWORD` when the database is not the local compose file. OAuth client id/secret default to `client` / `secret` for local introspect. Override with `AUTH_CLIENT_ID` and `AUTH_CLIENT_SECRET`. SMS credentials are `SMS_USERNAME` and `SMS_PASSWORD`. They are not stored in the service yaml.
+
+Seeded Auth super admin email: `superadmin@hrmsuite.com`. The password is stored as bcrypt only. Local web test customer: `webtest@example.com` / `secret123`.
+
+### 4. Start order
+
+1. Docker infra (Consul, Redis, Postgres, MinIO)
+2. Auth-Service
+3. Handyman-Service
+4. Customer-Service, Bucket-Service, Communication-Service
 5. Api-Gateway on **8090**
+6. Next.js web: `frontend` on **3000** (`NEXT_PUBLIC_API_BASE_URL=http://localhost:8090`)
 
-### 4. Smoke check
+The gateway lets `/api/v2/auth`, booking, catalog, provider, payment, postjob, review, helpdesk, notification, blog, config, and geo through without OAuth introspection. Handyman-Service then accepts either an Auth opaque token or the customer `apiToken` stored on the user.
+
+Communication bulk send loads selected users with `POST ${services.user}detail/micro`. There is no user-service module in this repo. `services.user` must point at a running user API.
+
+### 5. Smoke check
 
 - Gateway health: `http://localhost:8090/actuator/health`  
 - Consul UI: `http://localhost:8500`  

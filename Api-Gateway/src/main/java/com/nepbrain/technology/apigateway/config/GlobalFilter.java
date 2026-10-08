@@ -238,7 +238,19 @@ public class GlobalFilter implements WebFilter, Ordered {
                 "/api/v2/public/company/resolve-tenant",
                 "/",
                 "/api/v2/bucket/retrieve/",
-                "/api/v2/bucket/document/retrieve/"
+                "/api/v2/bucket/document/retrieve/",
+                "/api/v2/auth/",
+                "/api/v2/booking/",
+                "/api/v2/catalog/",
+                "/api/v2/provider/",
+                "/api/v2/payment/",
+                "/api/v2/postjob/",
+                "/api/v2/review/",
+                "/api/v2/helpdesk/",
+                "/api/v2/notification/",
+                "/api/v2/blog/",
+                "/api/v2/config/",
+                "/api/v2/geo/"
         };
         
         for (String pattern : whitelistPatterns) {
@@ -258,6 +270,18 @@ public class GlobalFilter implements WebFilter, Ordered {
                 || url.contains("/api/v2/public/")
                 || url.contains("/api/v2/public/company/resolve-tenant")
                 || url.contains("/bucket/public/")
+                || url.contains("/api/v2/auth/")
+                || url.contains("/api/v2/catalog/")
+                || url.contains("/api/v2/booking/")
+                || url.contains("/api/v2/provider/")
+                || url.contains("/api/v2/payment/")
+                || url.contains("/api/v2/postjob/")
+                || url.contains("/api/v2/review/")
+                || url.contains("/api/v2/helpdesk/")
+                || url.contains("/api/v2/geo/")
+                || url.contains("/api/v2/config/")
+                || url.contains("/api/v2/notification/")
+                || url.contains("/api/v2/blog/")
                 ;
 
         if (skipXsrf) {

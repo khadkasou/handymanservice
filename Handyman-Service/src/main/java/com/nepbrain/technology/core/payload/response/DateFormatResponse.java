@@ -8,6 +8,7 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 public class DateFormatResponse {
+
     String createdAt;
     String lastModifiedAt;
 }

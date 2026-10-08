@@ -1,29 +1,58 @@
 package com.nepbrain.technology.postjob.controller;
+
+import com.nepbrain.technology.core.enums.StatusEnum;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
 import com.nepbrain.technology.postjob.annotation.CustomPostjobRestController;
 import com.nepbrain.technology.postjob.payload.request.PostJobRequest;
 import com.nepbrain.technology.postjob.service.PostJobService;
-import com.nepbrain.technology.core.payload.response.GlobalResponse;
-import com.nepbrain.technology.core.payload.response.GlobalResponseBuilder;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity; import org.springframework.web.bind.annotation.*;
-import java.util.Map; import java.util.UUID;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
-@CustomPostjobRestController @RequiredArgsConstructor
-@Tag(name = "PostJob", description = "Post job APIs")
+import java.util.Map;
+import java.util.UUID;
+
+@CustomPostjobRestController
+@RequiredArgsConstructor
+@Tag(name = "PostJob")
 public class PostJobController {
+
     private final PostJobService postJobService;
-    @PostMapping("/save-post-job") public ResponseEntity<GlobalResponse> savePostJob(@RequestBody PostJobRequest request) {
-        return ResponseEntity.ok(GlobalResponseBuilder.buildSuccessResponse("SAVE_POST_JOB", postJobService.savePostJob(request)));
+
+    @PostMapping("/save-post-job")
+    @Operation(summary = "Save post job")
+    public ResponseEntity<GlobalResponse> savePostJob(@RequestBody PostJobRequest request) {
+        return ResponseEntity.ok().body(postJobService.savePostJob(request));
     }
-    @GetMapping("/get-post-job") public ResponseEntity<GlobalResponse> getPostJob(@RequestParam(value = "customer_id", required = false) UUID customerId) {
-        return ResponseEntity.ok(GlobalResponseBuilder.buildSuccessResponse("GET_POST_JOB", postJobService.getPostJob(customerId)));
+
+    @GetMapping("/get-post-job")
+    @Operation(summary = "Post job list")
+    public ResponseEntity<GlobalResponse> getPostJob(@RequestParam(value = "customer_id", required = false) UUID customerId) {
+        return ResponseEntity.ok().body(postJobService.getPostJob(customerId));
     }
-    @PostMapping("/get-post-job-detail") public ResponseEntity<GlobalResponse> getPostJobDetail(@RequestBody Map<String, UUID> body) {
-        return ResponseEntity.ok(GlobalResponseBuilder.buildSuccessResponse("GET_POST_JOB_DETAIL", postJobService.getPostJobDetail(body.get("id"))));
+
+    @PostMapping("/get-post-job-detail")
+    @Operation(summary = "Post job detail")
+    public ResponseEntity<GlobalResponse> getPostJobDetail(@RequestBody Map<String, UUID> body) {
+        return ResponseEntity.ok().body(postJobService.getPostJobDetail(body.get("id")));
     }
-    @PostMapping("/post-job-delete/{id}") public ResponseEntity<GlobalResponse> postJobDelete(@PathVariable UUID id) {
-        postJobService.postJobDelete(id);
-        return ResponseEntity.ok(GlobalResponseBuilder.buildSuccessResponse("POST_JOB_DELETE", "Post job deleted"));
+
+    @PutMapping("/post-job/{id}/status")
+    @Operation(summary = "Change post job status")
+    public ResponseEntity<GlobalResponse> changePostJobStatus(@PathVariable UUID id, @RequestParam StatusEnum status) {
+        return ResponseEntity.ok().body(postJobService.changePostJobStatus(id, status));
+    }
+
+    @PostMapping("/post-job-delete/{id}")
+    @Operation(summary = "Mark post job inactive")
+    public ResponseEntity<GlobalResponse> postJobDelete(@PathVariable UUID id) {
+        return ResponseEntity.ok().body(postJobService.postJobDelete(id));
     }
 }

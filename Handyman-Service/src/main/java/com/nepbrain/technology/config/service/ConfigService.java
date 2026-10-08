@@ -1,7 +1,12 @@
 package com.nepbrain.technology.config.service;
-import com.nepbrain.technology.config.payload.response.*;
+
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+
 public interface ConfigService {
-    ConfigurationResponse configurations(boolean authenticated);
-    DashboardResponse dashboardDetail();
-    FirebaseDetailResponse firebaseDetail();
+
+    GlobalResponse configurations(boolean authenticated);
+
+    GlobalResponse dashboardDetail();
+
+    GlobalResponse firebaseDetail();
 }

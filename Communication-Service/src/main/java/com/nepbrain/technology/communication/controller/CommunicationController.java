@@ -9,7 +9,6 @@ import com.nepbrain.technology.communication.payload.request.OTPVerifyRequest;
 import com.nepbrain.technology.communication.service.CommunicationService;
 import com.nepbrain.technology.core.exception.GlobalException;
 import com.nepbrain.technology.core.payload.response.GlobalResponse;
-import com.nepbrain.technology.core.payload.response.GlobalResponseBuilder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,9 +28,7 @@ public class CommunicationController {
             @RequestHeader(name = "Device-Version", required = false) String deviceVersion,
             @RequestHeader(name = "Channel-Id", required = false) String channelId,
             @RequestBody CommunicationRequest request) throws GlobalException {
-        communicationService.send(request);
-        return ResponseEntity.ok()
-                .body(GlobalResponseBuilder.buildSuccessResponse("Message sent successfully."));
+        return ResponseEntity.ok().body(communicationService.send(request));
     }
 
     @PostMapping("/send/micro")
@@ -43,9 +40,7 @@ public class CommunicationController {
             @RequestHeader(name = "Channel-Id", required = false) String channelId,
             @RequestBody CommunicationRequest request) throws GlobalException {
         request.setPlatform(PlatformEnum.WEB);
-        communicationService.send(request);
-        return ResponseEntity.ok()
-                .body(GlobalResponseBuilder.buildSuccessResponse("Message sent successfully."));
+        return ResponseEntity.ok().body(communicationService.send(request));
     }
 
     @PostMapping("/generateOTP")

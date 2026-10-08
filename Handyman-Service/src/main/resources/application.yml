@@ -17,7 +17,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/handyman
     username: postgres
-    password: password
+    password: ${DB_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10

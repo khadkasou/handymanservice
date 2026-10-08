@@ -15,6 +15,8 @@ import com.nepbrain.technology.communication.repository.MessageRepository;
 import com.nepbrain.technology.communication.service.MessageService;
 import com.nepbrain.technology.communication.service.specification.MessageSpecification;
 import com.nepbrain.technology.core.exception.GlobalException;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import com.nepbrain.technology.core.payload.response.GlobalResponseBuilder;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -22,6 +24,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,9 +47,9 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     @Transactional
-    public void create(MessageRequest request) {
+    public GlobalResponse create(MessageRequest request) {
         if (request.getTopic() != null && messageRepository.existsByTopic(request.getTopic())) {
-            throw new GlobalException(ErrorCodeEnum.MSG001.name());
+            throw new GlobalException(ErrorCodeEnum.MSG001.name(), HttpStatus.CONFLICT);
         }
         MessageEntity message = MessageEntity.builder()
                 .topic(request.getTopic())
@@ -72,11 +75,12 @@ public class MessageServiceImpl implements MessageService {
             }
             message.setMessages(details);
         }
+        return GlobalResponseBuilder.buildSuccessResponse("message.message.create.success");
     }
 
     @Override
     @Transactional
-    public void update(MessageRequest request) {
+    public GlobalResponse update(MessageRequest request) {
         if (request.getId() == null) {
             throw new GlobalException(ErrorCodeEnum.MSG002.name());
         }
@@ -88,17 +92,18 @@ public class MessageServiceImpl implements MessageService {
         message.setEnableEmail(request.getEnableEmail() != null ? request.getEnableEmail() : false);
         message.setEnableNotification(request.getEnableNotification() != null ? request.getEnableNotification() : false);
         messageRepository.save(message);
+        return GlobalResponseBuilder.buildSuccessResponse("message.message.update.success");
     }
 
     @Override
-    public MessageResponse getById(UUID id) {
+    public GlobalResponse getById(UUID id) {
         MessageEntity message = messageRepository.findById(id)
                 .orElseThrow(() -> new GlobalException(ErrorCodeEnum.MSG002.name()));
-        return toResponse(message);
+        return GlobalResponseBuilder.buildSuccessResponse(toResponse(message));
     }
 
     @Override
-    public DatapaginationResponse getAll(MessageDataRequest request) {
+    public GlobalResponse getAll(MessageDataRequest request) {
         Specification<MessageEntity> spec = MessageSpecification.messageFilter(request);
         Sort sort = Sort.by(Sort.Direction.fromString(
                 request.getDirection() != null && request.getDirection().equalsIgnoreCase("desc") ? "desc" : "asc"),
@@ -110,33 +115,35 @@ public class MessageServiceImpl implements MessageService {
         List<MessageResponse> result = page.getContent().stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
-        return DatapaginationResponse.builder()
+        return GlobalResponseBuilder.buildSuccessResponse(DatapaginationResponse.builder()
                 .totalElementCount(page.getTotalElements())
                 .result(result)
-                .build();
+                .build());
     }
 
     @Override
     @Transactional
-    public void delete(UUID id) {
+    public GlobalResponse delete(UUID id) {
         MessageEntity message = messageRepository.findById(id)
                 .orElseThrow(() -> new GlobalException(ErrorCodeEnum.MSG002.name()));
         List<MessageDetailEntity> details = messageDetailRepository.findAllByMessage(message);
         messageDetailRepository.deleteAll(details);
         messageRepository.delete(message);
+        return GlobalResponseBuilder.buildSuccessResponse("message.message.delete.success");
     }
 
     @Override
-    public void changeStatus(UUID id, StatusEnum status) {
+    public GlobalResponse changeStatus(UUID id, StatusEnum status) {
         MessageEntity message = messageRepository.findById(id)
-                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.MSG002.name()));
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.MSG002.name(), HttpStatus.BAD_REQUEST));
         message.setStatus(status);
         messageRepository.save(message);
+        return GlobalResponseBuilder.buildSuccessResponse("message.message.status.success");
     }
 
     @Override
     @Transactional
-    public MessageDetailResponse addDetail(UUID messageId, MessageDetailRequest request) {
+    public GlobalResponse addDetail(UUID messageId, MessageDetailRequest request) {
         if (request.getLanguage() == null) {
             throw new GlobalException(ErrorCodeEnum.MSG003.name());
         }
@@ -167,11 +174,12 @@ public class MessageServiceImpl implements MessageService {
             detail.setNotificationBody(request.getNotificationBody());
         }
         detail = messageDetailRepository.save(detail);
-        return modelMapper.map(detail, MessageDetailResponse.class);
+        return GlobalResponseBuilder.buildSuccessResponse(
+                "message.message.detail.saved.success", modelMapper.map(detail, MessageDetailResponse.class));
     }
 
     @Override
-    public MessageDetailResponse updateDetail(UUID detailId, MessageDetailRequest request) {
+    public GlobalResponse updateDetail(UUID detailId, MessageDetailRequest request) {
         MessageDetailEntity detail = messageDetailRepository.findById(detailId)
                 .orElseThrow(() -> new GlobalException(ErrorCodeEnum.MSG003.name()));
         if (request.getLanguage() != null) {
@@ -193,7 +201,8 @@ public class MessageServiceImpl implements MessageService {
             detail.setNotificationBody(request.getNotificationBody());
         }
         detail = messageDetailRepository.save(detail);
-        return modelMapper.map(detail, MessageDetailResponse.class);
+        return GlobalResponseBuilder.buildSuccessResponse(
+                "message.message.detail.saved.success", modelMapper.map(detail, MessageDetailResponse.class));
     }
 
     private MessageResponse toResponse(MessageEntity message) {

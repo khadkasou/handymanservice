@@ -86,14 +86,6 @@ server:
   url: ${SERVER_URL:http://localhost:8011}
   max-http-request-header-size: 30KB
 
-grpc:
-  server:
-    address: ${GRPC_SERVER_ADDRESS:0.0.0.0}
-    port: ${COMMUNICATION_GRPC_PORT:8911}
-  client:
-    user-service:
-      address: ${USER_GRPC_ADDRESS:static://localhost:8901}
-      negotiationType: PLAINTEXT
 services:
   master: https://demo-gateway.jojolapatech.hrmsuite.com.np/api/v2/master/
   user: https://demo-gateway.jojolapatech.hrmsuite.com.np/api/v2/user/
@@ -108,7 +100,7 @@ mail:
 
 sms:
   username: RemitTest
-  password: Remit@Test123
+  password: ${SMS_PASSWORD:}
   organizationCode: RemitTest
 
 aes:

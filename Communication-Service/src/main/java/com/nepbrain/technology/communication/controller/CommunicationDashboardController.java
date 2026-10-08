@@ -3,7 +3,6 @@ package com.nepbrain.technology.communication.controller;
 import com.nepbrain.technology.communication.annotation.CommunicationRestController;
 import com.nepbrain.technology.communication.service.CommunicationDashboardAnalyticsService;
 import com.nepbrain.technology.core.payload.response.GlobalResponse;
-import com.nepbrain.technology.core.payload.response.GlobalResponseBuilder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -20,8 +19,6 @@ public class CommunicationDashboardController {
     @GetMapping("/dashboard/analytics")
     @Operation(summary = "Support message and notice analytics for platform dashboard")
     public ResponseEntity<GlobalResponse> getAnalytics() {
-        return ResponseEntity.ok(GlobalResponseBuilder.buildSuccessResponse(
-                "COMMUNICATION_DASHBOARD_ANALYTICS",
-                analyticsService.getAnalytics()));
+        return ResponseEntity.ok().body(analyticsService.getAnalytics());
     }
 }

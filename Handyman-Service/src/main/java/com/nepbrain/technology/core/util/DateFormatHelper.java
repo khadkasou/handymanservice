@@ -13,12 +13,14 @@ public class DateFormatHelper {
 
     private static final DateTimeFormatter DEFAULT_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
 
-    public static  <T, D> DateFormatResponse formatDate(T input, Function<T, D> createdAtGetter, Function<T, D> lastModifiedAtGetter) {
+    public static <T, D> DateFormatResponse formatDate(
+            T input, Function<T, D> createdAtGetter, Function<T, D> lastModifiedAtGetter) {
         return formatDateWithFormatter(input, createdAtGetter, lastModifiedAtGetter, DEFAULT_FORMATTER);
     }
 
-    public static  <T, D> DateFormatResponse formatDateWithFormatter(T input, Function<T, D> createdAtGetter, Function<T, D> lastModifiedAtGetter,
-                                                             DateTimeFormatter formatter) {
+    public static <T, D> DateFormatResponse formatDateWithFormatter(T input, Function<T, D> createdAtGetter,
+            Function<T, D> lastModifiedAtGetter,
+            DateTimeFormatter formatter) {
         String createdAt = formatDate(createdAtGetter.apply(input), formatter);
         String lastModifiedAt = formatDate(lastModifiedAtGetter.apply(input), formatter);
         return new DateFormatResponse(createdAt, lastModifiedAt);
@@ -32,11 +34,10 @@ public class DateFormatHelper {
             case Date date1 -> formatter.format(date1.toInstant().atZone(ZoneId.systemDefault()));
             default -> throw new IllegalArgumentException("Unsupported date type: " + date.getClass());
         };
-
     }
 
     @SafeVarargs
-    public  static final <T> Map<Object, String> dateFormatter(List<T> entities, Function<T, ?>... dateExtractors) {
+    public static final <T> Map<Object, String> dateFormatter(List<T> entities, Function<T, ?>... dateExtractors) {
 
         if (entities == null || entities.isEmpty() || dateExtractors.length == 0) {
             return Collections.emptyMap();
@@ -59,7 +60,7 @@ public class DateFormatHelper {
         return formattedDates;
     }
 
-    private  static String formatAnyDate(Object dateObj, SimpleDateFormat sdf) {
+    private static String formatAnyDate(Object dateObj, SimpleDateFormat sdf) {
         if (dateObj instanceof LocalDateTime ldt) {
             return ldt.format(DateFormatHelper.DEFAULT_FORMATTER);
         } else if (dateObj instanceof LocalDate ld) {

@@ -32,7 +32,7 @@ public class FCMTestController {
 
     @PostMapping("/send-email/test")
     public String test(@RequestBody CommunicationRequest messageRequest) throws GlobalException {
-        return communicationService.send(messageRequest);
+        return String.valueOf(communicationService.send(messageRequest).getData());
 
     }
 

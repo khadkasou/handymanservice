@@ -10,6 +10,7 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface CustomerPreferenceMapper {
     @Mapping(target = "customer", ignore = true)
+    @Mapping(target = "status", ignore = true)
     CustomerPreferenceEntity toEntity(CustomerPreferenceRequest request);
     
     @Mapping(target = "customerId", source = "customer.id")
@@ -17,6 +18,7 @@ public interface CustomerPreferenceMapper {
     CustomerPreferenceResponse toResponse(CustomerPreferenceEntity entity);
     
     @Mapping(target = "customer", ignore = true)
+    @Mapping(target = "status", ignore = true)
     void updateEntity(CustomerPreferenceRequest request, @MappingTarget CustomerPreferenceEntity entity);
 }
 

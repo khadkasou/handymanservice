@@ -1,5 +1,11 @@
 package com.nepbrain.technology.payment.service;
 
+import com.nepbrain.technology.core.enums.ApiStatusEnum;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 import com.nepbrain.technology.core.enums.StatusEnum;
 import com.nepbrain.technology.core.exception.GlobalException;
 import com.nepbrain.technology.payment.entity.*;
@@ -23,11 +29,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
 @ExtendWith(MockitoExtension.class)
 class PaymentServiceImplTest {
 
@@ -37,11 +38,9 @@ class PaymentServiceImplTest {
     @Mock private BankRepository bankRepository;
     @Mock private PaymentGatewayRepository paymentGatewayRepository;
 
-    @Spy
-    private ModelMapper modelMapper = configuredMapper();
+    @Spy private ModelMapper modelMapper = configuredMapper();
 
-    @InjectMocks
-    private PaymentServiceImpl paymentService;
+    @InjectMocks private PaymentServiceImpl paymentService;
 
     private UUID userId;
     private UUID bookingId;
@@ -54,9 +53,7 @@ class PaymentServiceImplTest {
 
     private static ModelMapper configuredMapper() {
         ModelMapper mapper = new ModelMapper();
-        mapper.getConfiguration()
-                .setFieldMatchingEnabled(true)
-                .setFieldAccessLevel(AccessLevel.PRIVATE)
+        mapper.getConfiguration().setFieldMatchingEnabled(true).setFieldAccessLevel(AccessLevel.PRIVATE)
                 .setMatchingStrategy(MatchingStrategies.STRICT)
                 .setSkipNullEnabled(true);
         return mapper;
@@ -74,13 +71,14 @@ class PaymentServiceImplTest {
                 .build();
 
         when(paymentRepository.save(any(PaymentEntity.class))).thenAnswer(invocation -> {
-            PaymentEntity e = invocation.getArgument(0);
-            if (e.getId() == null) e.setId(UUID.randomUUID());
-            return e;
+                PaymentEntity e = invocation.getArgument(0);
+                if (e.getId() == null) {
+                e.setId(UUID.randomUUID());
+        }
+                return e;
         });
 
-        PaymentResponse response = paymentService.savePayment(request);
-
+        PaymentResponse response = (PaymentResponse) paymentService.savePayment(request).getData();
         assertThat(response.getId()).isNotNull();
         assertThat(response.getBookingId()).isEqualTo(bookingId);
         assertThat(response.getAmount()).isEqualByComparingTo("150.00");
@@ -99,8 +97,7 @@ class PaymentServiceImplTest {
         entity.setId(UUID.randomUUID());
         when(paymentRepository.findByBookingId(bookingId)).thenReturn(List.of(entity));
 
-        List<PaymentResponse> result = paymentService.paymentList(bookingId);
-
+        List<PaymentResponse> result = (List<PaymentResponse>) paymentService.paymentList(bookingId).getData();
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().getBookingId()).isEqualTo(bookingId);
         verify(paymentRepository).findByBookingId(bookingId);
@@ -117,8 +114,7 @@ class PaymentServiceImplTest {
         gateway.setId(UUID.randomUUID());
         when(paymentGatewayRepository.findAll()).thenReturn(List.of(gateway));
 
-        List<PaymentGatewayResponse> result = paymentService.paymentGateways();
-
+        List<PaymentGatewayResponse> result = (List<PaymentGatewayResponse>) paymentService.paymentGateways().getData();
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().getTitle()).isEqualTo("Stripe");
         assertThat(result.getFirst().getStatus()).isEqualTo("ACTIVE");
@@ -131,8 +127,7 @@ class PaymentServiceImplTest {
         wallet.setId(UUID.randomUUID());
         when(walletRepository.findByUserId(userId)).thenReturn(Optional.of(wallet));
 
-        WalletResponse response = paymentService.userWalletBalance(userId);
-
+        WalletResponse response = (WalletResponse) paymentService.userWalletBalance(userId).getData();
         assertThat(response.getUserId()).isEqualTo(userId);
         assertThat(response.getAmount()).isEqualByComparingTo("50");
         verify(walletRepository, never()).save(any());
@@ -142,13 +137,14 @@ class PaymentServiceImplTest {
     void userWalletBalance_createsWalletWhenMissing() {
         when(walletRepository.findByUserId(userId)).thenReturn(Optional.empty());
         when(walletRepository.save(any(WalletEntity.class))).thenAnswer(invocation -> {
-            WalletEntity e = invocation.getArgument(0);
-            if (e.getId() == null) e.setId(UUID.randomUUID());
-            return e;
+                WalletEntity e = invocation.getArgument(0);
+                if (e.getId() == null) {
+                e.setId(UUID.randomUUID());
+        }
+                return e;
         });
 
-        WalletResponse response = paymentService.userWalletBalance(userId);
-
+        WalletResponse response = (WalletResponse) paymentService.userWalletBalance(userId).getData();
         assertThat(response.getUserId()).isEqualTo(userId);
         assertThat(response.getAmount()).isEqualByComparingTo(BigDecimal.ZERO);
         verify(walletRepository).save(any(WalletEntity.class));
@@ -165,8 +161,7 @@ class PaymentServiceImplTest {
         tx.setId(UUID.randomUUID());
         when(walletTransactionRepository.findByUserIdOrderByCreatedAtDesc(userId)).thenReturn(List.of(tx));
 
-        List<WalletTransactionResponse> result = paymentService.walletHistory(userId);
-
+        List<WalletTransactionResponse> result = (List<WalletTransactionResponse>) paymentService.walletHistory(userId).getData();
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().getType()).isEqualTo("credit");
         verify(walletTransactionRepository).findByUserIdOrderByCreatedAtDesc(userId);
@@ -179,34 +174,38 @@ class PaymentServiceImplTest {
         when(walletRepository.findByUserId(userId)).thenReturn(Optional.of(wallet));
         when(walletRepository.save(any(WalletEntity.class))).thenAnswer(inv -> inv.getArgument(0));
         when(walletTransactionRepository.save(any(WalletTransactionEntity.class))).thenAnswer(inv -> {
-            WalletTransactionEntity e = inv.getArgument(0);
-            if (e.getId() == null) e.setId(UUID.randomUUID());
-            return e;
+                WalletTransactionEntity e = inv.getArgument(0);
+                if (e.getId() == null) {
+                e.setId(UUID.randomUUID());
+        }
+                return e;
         });
 
-        WalletTopUpRequest request = WalletTopUpRequest.builder()
-                .userId(userId)
-                .amount(new BigDecimal("30"))
-                .build();
+        WalletTopUpRequest request = WalletTopUpRequest.builder().userId(userId).amount(new BigDecimal("30")).build();
 
-        WalletResponse response = paymentService.walletTopUp(request);
-
+        WalletResponse response = (WalletResponse) paymentService.walletTopUp(request).getData();
         assertThat(response.getAmount()).isEqualByComparingTo("50");
-        verify(walletTransactionRepository).save(argThat(t -> "credit".equals(t.getType()) && "top_up".equals(t.getActivityType())));
+        verify(walletTransactionRepository).save(argThat(t -> "credit".equals(t.getType())
+                && "top_up".equals(t.getActivityType())));
     }
 
     @Test
     void walletTopUp_createsWalletWhenMissing() {
         when(walletRepository.findByUserId(userId)).thenReturn(Optional.empty());
         when(walletRepository.save(any(WalletEntity.class))).thenAnswer(invocation -> {
-            WalletEntity e = invocation.getArgument(0);
-            if (e.getId() == null) e.setId(UUID.randomUUID());
-            return e;
+                WalletEntity e = invocation.getArgument(0);
+                if (e.getId() == null) {
+                e.setId(UUID.randomUUID());
+        }
+                return e;
         });
-        when(walletTransactionRepository.save(any(WalletTransactionEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(walletTransactionRepository.save(any(WalletTransactionEntity.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
 
-        WalletResponse response = paymentService.walletTopUp(
-                WalletTopUpRequest.builder().userId(userId).amount(new BigDecimal("10")).build());
+        WalletResponse response = (WalletResponse) (paymentService.walletTopUp(WalletTopUpRequest.builder()
+                .userId(userId)
+                .amount(new BigDecimal("10"))
+                .build())).getData();
 
         assertThat(response.getAmount()).isEqualByComparingTo("10");
         verify(walletRepository).save(any(WalletEntity.class));
@@ -218,20 +217,24 @@ class PaymentServiceImplTest {
         wallet.setId(UUID.randomUUID());
         when(walletRepository.findByUserId(userId)).thenReturn(Optional.of(wallet));
         when(walletRepository.save(any(WalletEntity.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(walletTransactionRepository.save(any(WalletTransactionEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(walletTransactionRepository.save(any(WalletTransactionEntity.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
 
         paymentService.withdrawMoney(WithdrawRequest.builder().userId(userId).amount(new BigDecimal("40")).build());
 
         assertThat(wallet.getAmount()).isEqualByComparingTo("60");
-        verify(walletTransactionRepository).save(argThat(t -> "debit".equals(t.getType()) && "withdraw".equals(t.getActivityType())));
+        verify(walletTransactionRepository).save(argThat(t -> "debit".equals(t.getType())
+                && "withdraw".equals(t.getActivityType())));
     }
 
     @Test
     void withdrawMoney_walletNotFound_throwsGlobalException() {
         when(walletRepository.findByUserId(userId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> paymentService.withdrawMoney(
-                WithdrawRequest.builder().userId(userId).amount(BigDecimal.TEN).build()))
+        assertThatThrownBy(() -> paymentService.withdrawMoney(WithdrawRequest.builder()
+                .userId(userId)
+                .amount(BigDecimal.TEN)
+                .build()))
                 .isInstanceOf(GlobalException.class)
                 .extracting(ex -> ((GlobalException) ex).getCode())
                 .isEqualTo("PAY002");
@@ -243,8 +246,10 @@ class PaymentServiceImplTest {
         wallet.setId(UUID.randomUUID());
         when(walletRepository.findByUserId(userId)).thenReturn(Optional.of(wallet));
 
-        assertThatThrownBy(() -> paymentService.withdrawMoney(
-                WithdrawRequest.builder().userId(userId).amount(new BigDecimal("10")).build()))
+        assertThatThrownBy(() -> paymentService.withdrawMoney(WithdrawRequest.builder()
+                .userId(userId)
+                .amount(new BigDecimal("10"))
+                .build()))
                 .isInstanceOf(GlobalException.class)
                 .hasMessageContaining("Insufficient wallet balance")
                 .extracting(ex -> ((GlobalException) ex).getCode())
@@ -263,13 +268,14 @@ class PaymentServiceImplTest {
                 .isDefault(true)
                 .build();
         when(bankRepository.save(any(BankEntity.class))).thenAnswer(invocation -> {
-            BankEntity e = invocation.getArgument(0);
-            if (e.getId() == null) e.setId(UUID.randomUUID());
-            return e;
+                BankEntity e = invocation.getArgument(0);
+                if (e.getId() == null) {
+                e.setId(UUID.randomUUID());
+        }
+                return e;
         });
 
-        BankResponse response = paymentService.saveBank(request);
-
+        BankResponse response = (BankResponse) paymentService.saveBank(request).getData();
         assertThat(response.getId()).isNotNull();
         assertThat(response.getBankName()).isEqualTo("Nabil");
         assertThat(response.getAccountHolderName()).isEqualTo("John");
@@ -288,11 +294,7 @@ class PaymentServiceImplTest {
         when(bankRepository.findById(bankId)).thenReturn(Optional.of(existing));
         when(bankRepository.save(any(BankEntity.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        BankResponse response = paymentService.saveBank(BankRequest.builder()
-                .id(bankId)
-                .bankName("New Bank")
-                .build());
-
+        BankResponse response = (BankResponse) paymentService.saveBank(BankRequest.builder().id(bankId).bankName("New Bank").build()).getData();
         assertThat(response.getBankName()).isEqualTo("New Bank");
         verify(bankRepository).findById(bankId);
     }
@@ -310,12 +312,15 @@ class PaymentServiceImplTest {
 
     @Test
     void userBankDetail_success() {
-        BankEntity bank = BankEntity.builder().userId(userId).bankName("Nabil").status(StatusEnum.ACTIVE).build();
+        BankEntity bank = BankEntity.builder()
+                .userId(userId)
+                .bankName("Nabil")
+                .status(StatusEnum.ACTIVE)
+                .build();
         bank.setId(UUID.randomUUID());
         when(bankRepository.findByUserId(userId)).thenReturn(List.of(bank));
 
-        List<BankResponse> result = paymentService.userBankDetail(userId);
-
+        List<BankResponse> result = (List<BankResponse>) paymentService.userBankDetail(userId).getData();
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().getBankName()).isEqualTo("Nabil");
         verify(bankRepository).findByUserId(userId);
@@ -324,9 +329,17 @@ class PaymentServiceImplTest {
     @Test
     void defaultBank_success() {
         UUID bankId = UUID.randomUUID();
-        BankEntity bank = BankEntity.builder().userId(userId).isDefault(false).status(StatusEnum.ACTIVE).build();
+        BankEntity bank = BankEntity.builder()
+                .userId(userId)
+                .isDefault(false)
+                .status(StatusEnum.ACTIVE)
+                .build();
         bank.setId(bankId);
-        BankEntity other = BankEntity.builder().userId(userId).isDefault(true).status(StatusEnum.ACTIVE).build();
+        BankEntity other = BankEntity.builder()
+                .userId(userId)
+                .isDefault(true)
+                .status(StatusEnum.ACTIVE)
+                .build();
         other.setId(UUID.randomUUID());
 
         when(bankRepository.findById(bankId)).thenReturn(Optional.of(bank));
@@ -345,8 +358,7 @@ class PaymentServiceImplTest {
         UUID bankId = UUID.randomUUID();
         when(bankRepository.findById(bankId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> paymentService.defaultBank(bankId))
-                .isInstanceOf(GlobalException.class)
+        assertThatThrownBy(() -> paymentService.defaultBank(bankId)).isInstanceOf(GlobalException.class)
                 .extracting(ex -> ((GlobalException) ex).getCode())
                 .isEqualTo("PAY003");
     }
@@ -354,22 +366,26 @@ class PaymentServiceImplTest {
     @Test
     void deleteBank_success() {
         UUID bankId = UUID.randomUUID();
-        when(bankRepository.existsById(bankId)).thenReturn(true);
+        BankEntity bank = BankEntity.builder().status(StatusEnum.ACTIVE).isDefault(true).build();
+        bank.setId(bankId);
+        when(bankRepository.findById(bankId)).thenReturn(Optional.of(bank));
+        when(bankRepository.save(any(BankEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         paymentService.deleteBank(bankId);
 
-        verify(bankRepository).deleteById(bankId);
+        assertThat(bank.getStatus()).isEqualTo(StatusEnum.INACTIVE);
+        assertThat(bank.getIsDefault()).isFalse();
+        verify(bankRepository).save(bank);
     }
 
     @Test
     void deleteBank_notFound_throwsGlobalException() {
         UUID bankId = UUID.randomUUID();
-        when(bankRepository.existsById(bankId)).thenReturn(false);
+        when(bankRepository.findById(bankId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> paymentService.deleteBank(bankId))
-                .isInstanceOf(GlobalException.class)
+        assertThatThrownBy(() -> paymentService.deleteBank(bankId)).isInstanceOf(GlobalException.class)
                 .extracting(ex -> ((GlobalException) ex).getCode())
                 .isEqualTo("PAY003");
-        verify(bankRepository, never()).deleteById(any());
+        verify(bankRepository, never()).save(any());
     }
 }

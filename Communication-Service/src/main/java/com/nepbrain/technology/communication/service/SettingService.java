@@ -2,20 +2,19 @@ package com.nepbrain.technology.communication.service;
 
 import com.nepbrain.technology.communication.payload.request.SettingListRequest;
 import com.nepbrain.technology.communication.payload.request.SettingRequest;
-import com.nepbrain.technology.communication.payload.response.DatapaginationResponse;
-import com.nepbrain.technology.communication.payload.response.SettingResponse;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
 
 import java.util.UUID;
 
 public interface SettingService {
 
-    void create(SettingRequest request);
+    GlobalResponse create(SettingRequest request);
 
-    void update(UUID id, SettingRequest request);
+    GlobalResponse update(UUID id, SettingRequest request);
 
-    SettingResponse getById(UUID id);
+    GlobalResponse getById(UUID id);
 
-    DatapaginationResponse list(SettingListRequest request);
+    GlobalResponse list(SettingListRequest request);
 
-    void delete(UUID id);
+    GlobalResponse delete(UUID id);
 }

@@ -2,7 +2,6 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '4.0.0'
     id 'io.spring.dependency-management' version '1.1.7'
-    id 'com.google.protobuf' version '0.9.4'
 //    id "org.sonarqube" version "6.0.1.5171"
 }
 
@@ -67,14 +66,6 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
     testImplementation 'org.springframework.security:spring-security-test'
     runtimeOnly 'org.postgresql:postgresql'
-    // gRPC server + client (communication bulk send → User-Service)
-    implementation 'net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE'
-    implementation 'net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE'
-    implementation 'io.grpc:grpc-netty-shaded:1.78.0'
-    implementation 'io.grpc:grpc-protobuf:1.78.0'
-    implementation 'io.grpc:grpc-stub:1.78.0'
-    implementation 'com.google.protobuf:protobuf-java:4.33.4'
-    implementation 'org.apache.tomcat:tomcat-annotations-api:11.0.15'
 }
 
 dependencyManagement {
@@ -87,20 +78,7 @@ tasks.named('test') {
     useJUnitPlatform()
 }
 
-protobuf {
-    protoc { artifact = "com.google.protobuf:protoc:4.33.4" }
-    plugins { grpc { artifact = "io.grpc:protoc-gen-grpc-java:1.78.0" } }
-    generateProtoTasks { all().forEach { it.plugins { grpc {} } } }
-}
-
-sourceSets {
-    main {
-        java { srcDirs 'build/generated/source/proto/main/grpc', 'build/generated/source/proto/main/java' }
-    }
-}
-
 compileJava {
-    dependsOn generateProto
     options.fork = true
     options.forkOptions.jvmArgs += ['--sun-misc-unsafe-memory-access=allow']
     options.compilerArgs += [
@@ -108,6 +86,3 @@ compileJava {
     ]
 }
 
-tasks.named('bootJar') {
-    dependsOn generateProto
-}

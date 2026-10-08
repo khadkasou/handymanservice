@@ -3,12 +3,10 @@ package com.nepbrain.technology.communication.controller;
 import com.nepbrain.technology.communication.payload.request.SupportEmailRequest;
 import com.nepbrain.technology.communication.service.SupportEmailService;
 import com.nepbrain.technology.core.payload.response.GlobalResponse;
-import com.nepbrain.technology.core.payload.response.GlobalResponseBuilder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,7 +25,6 @@ public class PublicSupportEmailController {
     @PostMapping("/support-email/create")
     @Operation(summary = "Create a support email (public)")
     public ResponseEntity<GlobalResponse> create(@Valid @RequestBody SupportEmailRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(GlobalResponseBuilder.buildSuccessResponse(null, supportEmailService.create(request)));
+        return ResponseEntity.ok().body(supportEmailService.create(request));
     }
 }

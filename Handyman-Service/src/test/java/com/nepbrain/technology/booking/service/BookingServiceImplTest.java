@@ -1,5 +1,11 @@
 package com.nepbrain.technology.booking.service;
 
+import com.nepbrain.technology.core.enums.ApiStatusEnum;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 import com.nepbrain.technology.booking.entity.BookingEntity;
 import com.nepbrain.technology.booking.entity.BookingStatusEntity;
 import com.nepbrain.technology.booking.entity.CouponEntity;
@@ -29,35 +35,25 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
 @ExtendWith(MockitoExtension.class)
 class BookingServiceImplTest {
 
-    @Mock
-    private BookingRepository bookingRepository;
-    @Mock
-    private BookingStatusRepository bookingStatusRepository;
-    @Mock
-    private CouponRepository couponRepository;
+    @Mock private BookingRepository bookingRepository;
+    @Mock private BookingStatusRepository bookingStatusRepository;
+    @Mock private CouponRepository couponRepository;
 
-    @Spy
-    private ModelMapper modelMapper = new ModelMapper();
+    @Spy private ModelMapper modelMapper = new ModelMapper();
 
-    @InjectMocks
-    private BookingServiceImpl bookingService;
+    @InjectMocks private BookingServiceImpl bookingService;
 
     @BeforeEach
     void stubSave() {
         lenient().when(bookingRepository.save(any(BookingEntity.class))).thenAnswer(invocation -> {
-            BookingEntity entity = invocation.getArgument(0);
-            if (entity.getId() == null) {
+                BookingEntity entity = invocation.getArgument(0);
+                if (entity.getId() == null) {
                 entity.setId(UUID.randomUUID());
-            }
-            return entity;
+        }
+                return entity;
         });
     }
 
@@ -71,8 +67,7 @@ class BookingServiceImplTest {
                 .totalAmount(new BigDecimal("1500"))
                 .build();
 
-        BookingResponse response = bookingService.bookingSave(request);
-
+        BookingResponse response = (BookingResponse) bookingService.bookingSave(request).getData();
         assertThat(response.getId()).isNotNull();
         assertThat(response.getCustomerId()).isEqualTo(customerId);
         assertThat(response.getStatus()).isEqualTo("PENDING");
@@ -87,8 +82,7 @@ class BookingServiceImplTest {
                 .status("not-a-real-status")
                 .build();
 
-        assertThatThrownBy(() -> bookingService.bookingSave(request))
-                .isInstanceOf(GlobalException.class)
+        assertThatThrownBy(() -> bookingService.bookingSave(request)).isInstanceOf(GlobalException.class)
                 .extracting(ex -> ((GlobalException) ex).getCode())
                 .isEqualTo("BKG003");
         verify(bookingRepository, never()).save(any());
@@ -105,13 +99,13 @@ class BookingServiceImplTest {
         existing.setId(id);
         when(bookingRepository.findById(id)).thenReturn(Optional.of(existing));
 
-        BookingResponse response = bookingService.bookingUpdate(BookingRequest.builder()
+        BookingResponse response = (BookingResponse) (bookingService.bookingUpdate(BookingRequest.builder()
                 .id(id)
                 .status("COMPLETED")
                 .address("New Address")
                 .handymanId(UUID.randomUUID())
                 .totalAmount(new BigDecimal("2000"))
-                .build());
+                .build())).getData();
 
         assertThat(response.getStatus()).isEqualTo("COMPLETED");
         assertThat(response.getAddress()).isEqualTo("New Address");
@@ -141,8 +135,7 @@ class BookingServiceImplTest {
         entity.setId(id);
         when(bookingRepository.findById(id)).thenReturn(Optional.of(entity));
 
-        BookingResponse response = bookingService.bookingDetail(id);
-
+        BookingResponse response = (BookingResponse) bookingService.bookingDetail(id).getData();
         assertThat(response.getId()).isEqualTo(id);
         assertThat(response.getStatus()).isEqualTo("ACCEPT");
     }
@@ -152,8 +145,7 @@ class BookingServiceImplTest {
         UUID id = UUID.randomUUID();
         when(bookingRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> bookingService.bookingDetail(id))
-                .isInstanceOf(GlobalException.class)
+        assertThatThrownBy(() -> bookingService.bookingDetail(id)).isInstanceOf(GlobalException.class)
                 .extracting(ex -> ((GlobalException) ex).getCode())
                 .isEqualTo("BKG001");
     }
@@ -168,8 +160,7 @@ class BookingServiceImplTest {
         entity.setId(UUID.randomUUID());
         when(bookingRepository.findByCustomerId(customerId)).thenReturn(List.of(entity));
 
-        List<BookingResponse> list = bookingService.bookingList(customerId);
-
+        List<BookingResponse> list = (List<BookingResponse>) bookingService.bookingList(customerId).getData();
         assertThat(list).hasSize(1);
         assertThat(list.getFirst().getCustomerId()).isEqualTo(customerId);
         verify(bookingRepository).findByCustomerId(customerId);
@@ -182,7 +173,7 @@ class BookingServiceImplTest {
         entity.setId(UUID.randomUUID());
         when(bookingRepository.findAll()).thenReturn(List.of(entity));
 
-        assertThat(bookingService.bookingList(null)).hasSize(1);
+        assertThat((java.util.List<?>) bookingService.bookingList(null).getData()).hasSize(1);
         verify(bookingRepository).findAll();
     }
 
@@ -197,8 +188,7 @@ class BookingServiceImplTest {
         status.setId(UUID.randomUUID());
         when(bookingStatusRepository.findAll()).thenReturn(List.of(status));
 
-        List<BookingStatusResponse> responses = bookingService.bookingStatus();
-
+        List<BookingStatusResponse> responses = (List<BookingStatusResponse>) bookingService.bookingStatus().getData();
         assertThat(responses).hasSize(1);
         assertThat(responses.getFirst().getValue()).isEqualTo("pending");
         assertThat(responses.getFirst().getLabel()).isEqualTo("Pending");
@@ -216,8 +206,7 @@ class BookingServiceImplTest {
         entity.setId(id);
         when(bookingRepository.findById(id)).thenReturn(Optional.of(entity));
 
-        LocationResponse response = bookingService.getLocation(id);
-
+        LocationResponse response = (LocationResponse) bookingService.getLocation(id).getData();
         assertThat(response.getBookingId()).isEqualTo(id);
         assertThat(response.getLatitude()).isEqualTo(27.7);
         assertThat(response.getLongitude()).isEqualTo(85.3);
@@ -229,8 +218,7 @@ class BookingServiceImplTest {
         UUID id = UUID.randomUUID();
         when(bookingRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> bookingService.getLocation(id))
-                .isInstanceOf(GlobalException.class)
+        assertThatThrownBy(() -> bookingService.getLocation(id)).isInstanceOf(GlobalException.class)
                 .extracting(ex -> ((GlobalException) ex).getCode())
                 .isEqualTo("BKG001");
     }
@@ -242,8 +230,7 @@ class BookingServiceImplTest {
         entity.setId(id);
         when(bookingRepository.findById(id)).thenReturn(Optional.of(entity));
 
-        String invoice = bookingService.downloadInvoice(id);
-
+        String invoice = (String) bookingService.downloadInvoice(id).getData();
         assertThat(invoice).contains(id.toString());
     }
 
@@ -252,8 +239,7 @@ class BookingServiceImplTest {
         UUID id = UUID.randomUUID();
         when(bookingRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> bookingService.downloadInvoice(id))
-                .isInstanceOf(GlobalException.class)
+        assertThatThrownBy(() -> bookingService.downloadInvoice(id)).isInstanceOf(GlobalException.class)
                 .extracting(ex -> ((GlobalException) ex).getCode())
                 .isEqualTo("BKG001");
     }
@@ -269,8 +255,7 @@ class BookingServiceImplTest {
         coupon.setId(UUID.randomUUID());
         when(couponRepository.findByServiceId(serviceId)).thenReturn(List.of(coupon));
 
-        List<CouponResponse> coupons = bookingService.couponList(serviceId);
-
+        List<CouponResponse> coupons = (List<CouponResponse>) bookingService.couponList(serviceId).getData();
         assertThat(coupons).hasSize(1);
         assertThat(coupons.getFirst().getCode()).isEqualTo("SAVE10");
         assertThat(coupons.getFirst().getStatus()).isEqualTo("ACTIVE");

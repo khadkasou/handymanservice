@@ -1,6 +1,7 @@
 package com.nepbrain.technology.customer.payload.response;
 
 import com.nepbrain.technology.core.enums.CountryEnum;
+import com.nepbrain.technology.core.enums.StatusEnum;
 import com.nepbrain.technology.customer.enums.AddressTypeEnum;
 import lombok.*;
 
@@ -27,6 +28,7 @@ public class CustomerAddressResponse {
     private String longitude;
     private String additionalInfo;
     private Boolean isPrimary;
+    private StatusEnum status;
     private LocalDateTime createdAt;
     private LocalDateTime lastModifiedAt;
     private UUID createdBy;

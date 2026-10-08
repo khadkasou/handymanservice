@@ -1,12 +1,12 @@
 package com.nepbrain.technology.core.config;
 
 import com.nepbrain.technology.core.util.ValidationKeyHolder;
-import jakarta.validation.MessageInterpolator;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
+import jakarta.validation.MessageInterpolator;
 import java.util.Locale;
 
 @Configuration
@@ -46,4 +46,3 @@ public class ValidationConfig {
         }
     }
 }
-

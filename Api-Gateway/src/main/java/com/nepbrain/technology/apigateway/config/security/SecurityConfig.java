@@ -3,8 +3,10 @@ package com.nepbrain.technology.apigateway.config.security;
 import com.nepbrain.technology.apigateway.exception.CustomAuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.web.server.util.matcher.ServerWebExchangeMatchers;
 import org.springframework.security.oauth2.server.resource.introspection.ReactiveOpaqueTokenIntrospector;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 
@@ -50,10 +52,49 @@ public class SecurityConfig {
                 "/api/v2/public/company/resolve-tenant",
                 "/",
                 "/api/v2/bucket/public/retrieve-bucket/**",
-                "/api/v2/bucket/retrieve/**", "/api/v2/bucket/document/retrieve/**"};
+                "/api/v2/bucket/retrieve/**", "/api/v2/bucket/document/retrieve/**",
+                "/api/v2/auth/register",
+                "/api/v2/auth/login",
+                "/api/v2/auth/social-login",
+                "/api/v2/auth/forgot-password",
+                "/api/v2/config/configurations",
+                "/api/v2/config/firebase-detail",
+                "/api/v2/geo/**",
+                "/api/v2/catalog/category-list",
+                "/api/v2/catalog/subcategory-list",
+                "/api/v2/catalog/service-list",
+                "/api/v2/catalog/service-detail",
+                "/api/v2/catalog/search-list"};
+    }
+
+    /**
+     * Customer app tokens are Handyman apiTokens, checked by Handyman-Service.
+     * These paths skip gateway OAuth introspection so that token can be forwarded.
+     */
+    @Bean
+    @Order(1)
+    SecurityWebFilterChain handymanCustomerChain(ServerHttpSecurity http) {
+        http.securityMatcher(ServerWebExchangeMatchers.pathMatchers(
+                        "/api/v2/auth/**",
+                        "/api/v2/booking/**",
+                        "/api/v2/catalog/**",
+                        "/api/v2/provider/**",
+                        "/api/v2/payment/**",
+                        "/api/v2/postjob/**",
+                        "/api/v2/review/**",
+                        "/api/v2/helpdesk/**",
+                        "/api/v2/notification/**",
+                        "/api/v2/blog/**",
+                        "/api/v2/config/**",
+                        "/api/v2/geo/**"))
+                .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .cors(ServerHttpSecurity.CorsSpec::disable)
+                .authorizeExchange(auth -> auth.anyExchange().permitAll());
+        return http.build();
     }
 
     @Bean
+    @Order(2)
     SecurityWebFilterChain securityFilterChain(ServerHttpSecurity http) {
         http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)

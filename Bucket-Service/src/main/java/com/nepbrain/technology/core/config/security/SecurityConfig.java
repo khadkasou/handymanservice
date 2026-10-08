@@ -48,14 +48,6 @@ public class SecurityConfig {
                 "/favicon.ico",
                 // Anonymous read of stored files (browser <img>, PDF links); uploads remain authenticated.
                 "/api/v2/bucket/public/**",
-                "/api/v2/communication/public/**",
-                // Service-to-service template email (User-Service company admin provisioning HTTP fallback)
-                "/api/v2/communication/send",
-                "/api/v2/communication/send/micro",
-                "/api/v2/communication/send/explicit",
-                "/api/v2/communication/generateOTP",
-                "/api/v2/communication/generateOTP/micro",
-                "/api/v2/communication/verifyOTP",
         };
 
         http

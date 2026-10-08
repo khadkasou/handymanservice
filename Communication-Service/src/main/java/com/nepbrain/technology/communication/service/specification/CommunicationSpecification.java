@@ -1,6 +1,7 @@
 package com.nepbrain.technology.communication.service.specification;
 
 import com.nepbrain.technology.communication.entity.CommunicationEntity;
+import com.nepbrain.technology.communication.enums.ErrorCodeEnum;
 import com.nepbrain.technology.communication.payload.request.CommunicationSearchFilterPaginationRequest;
 import com.nepbrain.technology.communication.util.Constant;
 import com.nepbrain.technology.core.exception.GlobalException;
@@ -62,7 +63,7 @@ public class CommunicationSpecification {
                 LocalDateTime from = LocalDateTime.parse(request.getFromDate(), formatter);
                 LocalDateTime to = LocalDateTime.parse(request.getToDate(), formatter);
                 if (to.isBefore(from)) {
-                    throw new GlobalException("DAT001");
+                    throw new GlobalException(ErrorCodeEnum.DAT001.name());
                 }
                 Predicate createdDatePredicate = criteriaBuilder.between(root.get(Constant.CREATED_AT), from, to);
                 finalPredicate = criteriaBuilder.and(finalPredicate, createdDatePredicate);

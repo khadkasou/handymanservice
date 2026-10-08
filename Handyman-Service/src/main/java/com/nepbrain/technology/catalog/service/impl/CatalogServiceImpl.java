@@ -1,65 +1,173 @@
 package com.nepbrain.technology.catalog.service.impl;
-import com.nepbrain.technology.catalog.entity.*;
-import com.nepbrain.technology.catalog.payload.request.*;
-import com.nepbrain.technology.catalog.payload.response.*;
-import com.nepbrain.technology.catalog.repository.*;
-import com.nepbrain.technology.catalog.service.CatalogService;
-import com.nepbrain.technology.core.exception.GlobalException;
-import lombok.RequiredArgsConstructor; import org.modelmapper.ModelMapper;
-import org.springframework.stereotype.Service; import org.springframework.transaction.annotation.Transactional;
-import java.util.List; import java.util.UUID; import java.util.stream.Collectors;
-import static com.nepbrain.technology.catalog.enums.ErrorCodeEnum.*;
 
-@Service @RequiredArgsConstructor @Transactional
+import com.nepbrain.technology.catalog.entity.CategoryEntity;
+import com.nepbrain.technology.catalog.entity.FavouriteServiceEntity;
+import com.nepbrain.technology.catalog.entity.ServiceEntity;
+import com.nepbrain.technology.catalog.enums.ErrorCodeEnum;
+import com.nepbrain.technology.catalog.payload.request.FavouriteRequest;
+import com.nepbrain.technology.catalog.payload.request.ServiceRequest;
+import com.nepbrain.technology.catalog.payload.response.CategoryResponse;
+import com.nepbrain.technology.catalog.payload.response.ServiceResponse;
+import com.nepbrain.technology.catalog.repository.CategoryRepository;
+import com.nepbrain.technology.catalog.repository.FavouriteServiceRepository;
+import com.nepbrain.technology.catalog.repository.ServiceRepository;
+import com.nepbrain.technology.catalog.service.CatalogService;
+import com.nepbrain.technology.core.enums.StatusEnum;
+import com.nepbrain.technology.core.exception.GlobalException;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import com.nepbrain.technology.core.payload.response.GlobalResponseBuilder;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
 public class CatalogServiceImpl implements CatalogService {
+
     private final CategoryRepository categoryRepository;
     private final ServiceRepository serviceRepository;
     private final FavouriteServiceRepository favouriteServiceRepository;
-    private final ModelMapper modelMapper;
 
-    @Override @Transactional(readOnly = true)
-    public List<CategoryResponse> categoryList() {
-        return categoryRepository.findByParentIdIsNull().stream().map(this::toCat).collect(Collectors.toList());
+    @Override
+    public GlobalResponse categoryList() {
+        List<CategoryResponse> categories = new ArrayList<>();
+        for (CategoryEntity category : categoryRepository.findByParentIdIsNull()) {
+            categories.add(toCategory(category));
+        }
+        return GlobalResponseBuilder.buildSuccessResponse(categories);
     }
-    @Override @Transactional(readOnly = true)
-    public List<CategoryResponse> subcategoryList(UUID categoryId) {
-        return categoryRepository.findByParentId(categoryId).stream().map(this::toCat).collect(Collectors.toList());
+
+    @Override
+    public GlobalResponse subcategoryList(UUID categoryId) {
+        List<CategoryResponse> subcategories = new ArrayList<>();
+        for (CategoryEntity category : categoryRepository.findByParentId(categoryId)) {
+            subcategories.add(toCategory(category));
+        }
+        return GlobalResponseBuilder.buildSuccessResponse(subcategories);
     }
-    @Override @Transactional(readOnly = true)
-    public List<ServiceResponse> serviceList(UUID customerId) {
-        return serviceRepository.findAll().stream().map(this::toSvc).collect(Collectors.toList());
+
+    @Override
+    public GlobalResponse serviceList(UUID customerId) {
+        List<ServiceResponse> services = new ArrayList<>();
+        for (ServiceEntity service : serviceRepository.findAll()) {
+            services.add(toService(service));
+        }
+        return GlobalResponseBuilder.buildSuccessResponse(services);
     }
-    @Override @Transactional(readOnly = true)
-    public ServiceResponse serviceDetail(ServiceRequest request) {
-        return toSvc(serviceRepository.findById(request.getId()).orElseThrow(() -> new GlobalException(SER001.name())));
+
+    @Override
+    public GlobalResponse serviceDetail(ServiceRequest request) {
+        ServiceEntity service = serviceRepository.findById(request.getId())
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.SER001.name()));
+        return GlobalResponseBuilder.buildSuccessResponse(toService(service));
     }
-    @Override @Transactional(readOnly = true)
-    public List<ServiceResponse> searchList(String search, UUID categoryId) {
-        List<ServiceEntity> list = search != null && !search.isBlank()
-                ? serviceRepository.findByNameContainingIgnoreCase(search) : serviceRepository.findAll();
-        if (categoryId != null) list = list.stream().filter(s -> categoryId.equals(s.getCategoryId())).collect(Collectors.toList());
-        return list.stream().map(this::toSvc).collect(Collectors.toList());
+
+    @Override
+    public GlobalResponse searchList(String search, UUID categoryId) {
+        List<ServiceEntity> matches;
+        if (search != null && !search.isBlank()) {
+            matches = serviceRepository.findByNameContainingIgnoreCase(search);
+        } else {
+            matches = serviceRepository.findAll();
+        }
+
+        List<ServiceResponse> services = new ArrayList<>();
+        for (ServiceEntity service : matches) {
+            if (categoryId != null && !categoryId.equals(service.getCategoryId())) {
+                continue;
+            }
+            services.add(toService(service));
+        }
+        return GlobalResponseBuilder.buildSuccessResponse(services);
     }
-    @Override public void saveFavourite(FavouriteRequest request) {
-        favouriteServiceRepository.findByUserIdAndServiceId(request.getUserId(), request.getServiceId())
-                .orElseGet(() -> favouriteServiceRepository.save(FavouriteServiceEntity.builder()
-                        .userId(request.getUserId()).serviceId(request.getServiceId()).build()));
+
+    @Override
+    public GlobalResponse saveFavourite(FavouriteRequest request) {
+        FavouriteServiceEntity favourite = favouriteServiceRepository
+                .findByUserIdAndServiceId(request.getUserId(), request.getServiceId())
+                .orElse(null);
+        if (favourite != null) {
+            if (favourite.getStatus() == StatusEnum.INACTIVE) {
+                favourite.setStatus(StatusEnum.ACTIVE);
+                favouriteServiceRepository.save(favourite);
+            }
+            return GlobalResponseBuilder.buildSuccessResponse("message.catalog.favourite.saved.success");
+        }
+        favourite = new FavouriteServiceEntity();
+        favourite.setUserId(request.getUserId());
+        favourite.setServiceId(request.getServiceId());
+        favourite.setStatus(StatusEnum.ACTIVE);
+        favouriteServiceRepository.save(favourite);
+        return GlobalResponseBuilder.buildSuccessResponse("message.catalog.favourite.saved.success");
     }
-    @Override public void deleteFavourite(FavouriteRequest request) {
-        favouriteServiceRepository.deleteByUserIdAndServiceId(request.getUserId(), request.getServiceId());
+
+    @Override
+    public GlobalResponse changeFavouriteStatus(FavouriteRequest request, StatusEnum status) {
+        if (status != StatusEnum.ACTIVE && status != StatusEnum.INACTIVE) {
+            throw new GlobalException(ErrorCodeEnum.FAV002.name());
+        }
+        FavouriteServiceEntity favourite = favouriteServiceRepository
+                .findByUserIdAndServiceId(request.getUserId(), request.getServiceId())
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.FAV001.name(), HttpStatus.BAD_REQUEST));
+        favourite.setStatus(status);
+        favouriteServiceRepository.save(favourite);
+        return GlobalResponseBuilder.buildSuccessResponse("message.catalog.favourite.status.success");
     }
-    @Override @Transactional(readOnly = true)
-    public List<ServiceResponse> userFavouriteService(UUID userId) {
-        return favouriteServiceRepository.findByUserId(userId).stream()
-                .map(f -> serviceRepository.findById(f.getServiceId()).orElse(null))
-                .filter(s -> s != null).map(this::toSvc).collect(Collectors.toList());
+
+    @Override
+    public GlobalResponse deleteFavourite(FavouriteRequest request) {
+        return changeFavouriteStatus(request, StatusEnum.INACTIVE);
     }
-    private CategoryResponse toCat(CategoryEntity e) {
-        CategoryResponse r = modelMapper.map(e, CategoryResponse.class);
-        r.setStatus(e.getStatus() != null ? e.getStatus().name() : null); return r;
+
+    @Override
+    public GlobalResponse userFavouriteService(UUID userId) {
+        List<ServiceResponse> services = new ArrayList<>();
+        for (FavouriteServiceEntity favourite : favouriteServiceRepository.findByUserId(userId)) {
+            if (favourite.getStatus() == StatusEnum.INACTIVE) {
+                continue;
+            }
+            ServiceEntity service = serviceRepository.findById(favourite.getServiceId()).orElse(null);
+            if (service == null) {
+                continue;
+            }
+            services.add(toService(service));
+        }
+        return GlobalResponseBuilder.buildSuccessResponse(services);
     }
-    private ServiceResponse toSvc(ServiceEntity e) {
-        ServiceResponse r = modelMapper.map(e, ServiceResponse.class);
-        r.setStatus(e.getStatus() != null ? e.getStatus().name() : null); return r;
+
+    private CategoryResponse toCategory(CategoryEntity category) {
+        String status = category.getStatus() == null ? null : category.getStatus().name();
+        return CategoryResponse.builder()
+                .id(category.getId())
+                .name(category.getName())
+                .description(category.getDescription())
+                .image(category.getImage())
+                .parentId(category.getParentId())
+                .status(status)
+                .isFeatured(category.getIsFeatured())
+                .build();
+    }
+
+    private ServiceResponse toService(ServiceEntity service) {
+        String status = service.getStatus() == null ? null : service.getStatus().name();
+        return ServiceResponse.builder()
+                .id(service.getId())
+                .name(service.getName())
+                .description(service.getDescription())
+                .categoryId(service.getCategoryId())
+                .subcategoryId(service.getSubcategoryId())
+                .providerId(service.getProviderId())
+                .price(service.getPrice())
+                .discount(service.getDiscount())
+                .duration(service.getDuration())
+                .image(service.getImage())
+                .status(status)
+                .isFeatured(service.getIsFeatured())
+                .serviceType(service.getServiceType())
+                .build();
     }
 }

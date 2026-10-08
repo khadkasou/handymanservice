@@ -2,6 +2,7 @@ package com.nepbrain.technology.customer.entity;
 
 import com.nepbrain.technology.core.entity.BaseAuditEntity;
 import com.nepbrain.technology.core.enums.CountryEnum;
+import com.nepbrain.technology.core.enums.StatusEnum;
 import com.nepbrain.technology.customer.enums.AddressTypeEnum;
 import jakarta.persistence.*;
 import lombok.*;
@@ -42,6 +43,10 @@ public class CustomerAddressEntity extends BaseAuditEntity {
     private String additionalInfo;
 
     private Boolean isPrimary;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "varchar(20) default 'ACTIVE'")
+    private StatusEnum status = StatusEnum.ACTIVE;
 
     @ManyToOne(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinColumn(name = "customer_id", nullable = false)

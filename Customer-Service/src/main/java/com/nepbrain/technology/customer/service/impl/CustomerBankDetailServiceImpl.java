@@ -1,6 +1,9 @@
 package com.nepbrain.technology.customer.service.impl;
 
+import com.nepbrain.technology.core.enums.StatusEnum;
 import com.nepbrain.technology.core.exception.GlobalException;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import com.nepbrain.technology.core.payload.response.GlobalResponseBuilder;
 import com.nepbrain.technology.customer.entity.CustomerBankDetailEntity;
 import com.nepbrain.technology.customer.entity.CustomerEntity;
 import com.nepbrain.technology.customer.enums.ErrorCodeEnum;
@@ -29,10 +32,9 @@ public class CustomerBankDetailServiceImpl implements CustomerBankDetailService 
     private final CustomerBankDetailMapper bankDetailMapper;
 
     @Override
-    public CustomerBankDetailResponse create(CustomerBankDetailRequest request) {
-        // Validate customer exists
+    public GlobalResponse create(CustomerBankDetailRequest request) {
         CustomerEntity customer = customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.ERR002.name(), HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUS002.name()));
 
         // If this is set as primary, unset other primary bank details
         if (Boolean.TRUE.equals(request.getIsPrimary())) {
@@ -45,19 +47,21 @@ public class CustomerBankDetailServiceImpl implements CustomerBankDetailService 
 
         CustomerBankDetailEntity entity = bankDetailMapper.toEntity(request);
         entity.setCustomer(customer);
+        if (entity.getStatus() == null) {
+            entity.setStatus(StatusEnum.ACTIVE);
+        }
         CustomerBankDetailEntity saved = bankDetailRepository.save(entity);
-        return bankDetailMapper.toResponse(saved);
+        return GlobalResponseBuilder.buildSuccessResponse("message.customer.bank.create.success", bankDetailMapper.toResponse(saved));
     }
 
     @Override
-    public CustomerBankDetailResponse update(UUID id, CustomerBankDetailRequest request) {
+    public GlobalResponse update(UUID id, CustomerBankDetailRequest request) {
         CustomerBankDetailEntity entity = bankDetailRepository.findById(id)
-                .orElseThrow(() -> new GlobalException("CUSTOMER_BANK_DETAIL_NOT_FOUND", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUSB001.name()));
 
-        // Validate customer exists if changed
         if (!entity.getCustomer().getId().equals(request.getCustomerId())) {
             CustomerEntity customer = customerRepository.findById(request.getCustomerId())
-                    .orElseThrow(() -> new GlobalException(ErrorCodeEnum.ERR002.name(), HttpStatus.NOT_FOUND));
+                    .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUS002.name()));
             entity.setCustomer(customer);
         }
 
@@ -73,39 +77,43 @@ public class CustomerBankDetailServiceImpl implements CustomerBankDetailService 
 
         bankDetailMapper.updateEntity(request, entity);
         CustomerBankDetailEntity saved = bankDetailRepository.save(entity);
-        return bankDetailMapper.toResponse(saved);
+        return GlobalResponseBuilder.buildSuccessResponse("message.customer.bank.update.success", bankDetailMapper.toResponse(saved));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public CustomerBankDetailResponse getById(UUID id) {
+    public GlobalResponse getById(UUID id) {
         CustomerBankDetailEntity entity = bankDetailRepository.findById(id)
-                .orElseThrow(() -> new GlobalException("CUSTOMER_BANK_DETAIL_NOT_FOUND", HttpStatus.NOT_FOUND));
-        return bankDetailMapper.toResponse(entity);
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUSB001.name()));
+        return GlobalResponseBuilder.buildSuccessResponse(bankDetailMapper.toResponse(entity));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<CustomerBankDetailResponse> getByCustomerId(UUID customerId) {
-        List<CustomerBankDetailEntity> entities = bankDetailRepository.findByCustomerId(customerId);
-        return entities.stream()
+    public GlobalResponse getByCustomerId(UUID customerId) {
+        List<CustomerBankDetailResponse> bankDetails = bankDetailRepository.findByCustomerId(customerId).stream()
                 .map(bankDetailMapper::toResponse)
                 .collect(Collectors.toList());
+        return GlobalResponseBuilder.buildSuccessResponse(bankDetails);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public CustomerBankDetailResponse getPrimaryByCustomerId(UUID customerId) {
+    public GlobalResponse getPrimaryByCustomerId(UUID customerId) {
         CustomerBankDetailEntity entity = bankDetailRepository.findByCustomerIdAndIsPrimaryTrue(customerId)
-                .orElseThrow(() -> new GlobalException("PRIMARY_BANK_DETAIL_NOT_FOUND", HttpStatus.NOT_FOUND));
-        return bankDetailMapper.toResponse(entity);
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUSB002.name()));
+        return GlobalResponseBuilder.buildSuccessResponse(bankDetailMapper.toResponse(entity));
     }
 
     @Override
-    public void delete(UUID id) {
+    public GlobalResponse changeStatus(UUID id, StatusEnum status) {
+        if (status != StatusEnum.ACTIVE && status != StatusEnum.INACTIVE) {
+            throw new GlobalException(ErrorCodeEnum.CUSB003.name());
+        }
         CustomerBankDetailEntity entity = bankDetailRepository.findById(id)
-                .orElseThrow(() -> new GlobalException("CUSTOMER_BANK_DETAIL_NOT_FOUND", HttpStatus.NOT_FOUND));
-        bankDetailRepository.delete(entity);
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUSB001.name(), HttpStatus.BAD_REQUEST));
+        entity.setStatus(status);
+        return GlobalResponseBuilder.buildSuccessResponse("message.customer.bank.status.success", bankDetailMapper.toResponse(bankDetailRepository.save(entity)));
     }
 }
 

@@ -1,79 +1,213 @@
 package com.nepbrain.technology.booking.service.impl;
-import com.nepbrain.technology.booking.entity.*;
+
+import com.nepbrain.technology.booking.entity.BookingEntity;
+import com.nepbrain.technology.booking.entity.BookingStatusEntity;
+import com.nepbrain.technology.booking.entity.CouponEntity;
 import com.nepbrain.technology.booking.enums.BookingStatusEnum;
+import com.nepbrain.technology.booking.enums.ErrorCodeEnum;
 import com.nepbrain.technology.booking.payload.request.BookingRequest;
-import com.nepbrain.technology.booking.payload.response.*;
-import com.nepbrain.technology.booking.repository.*;
+import com.nepbrain.technology.booking.payload.response.BookingResponse;
+import com.nepbrain.technology.booking.payload.response.BookingStatusResponse;
+import com.nepbrain.technology.booking.payload.response.CouponResponse;
+import com.nepbrain.technology.booking.payload.response.LocationResponse;
+import com.nepbrain.technology.booking.repository.BookingRepository;
+import com.nepbrain.technology.booking.repository.BookingStatusRepository;
+import com.nepbrain.technology.booking.repository.CouponRepository;
 import com.nepbrain.technology.booking.service.BookingService;
 import com.nepbrain.technology.core.exception.GlobalException;
-import lombok.RequiredArgsConstructor; import org.modelmapper.ModelMapper;
-import org.springframework.stereotype.Service; import org.springframework.transaction.annotation.Transactional;
-import java.util.List; import java.util.UUID; import java.util.stream.Collectors;
-import static com.nepbrain.technology.booking.enums.ErrorCodeEnum.*;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import com.nepbrain.technology.core.payload.response.GlobalResponseBuilder;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
-@Service @RequiredArgsConstructor @Transactional
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
+
     private final BookingRepository bookingRepository;
     private final BookingStatusRepository bookingStatusRepository;
     private final CouponRepository couponRepository;
-    private final ModelMapper modelMapper;
 
-    @Override public BookingResponse bookingSave(BookingRequest request) {
-        BookingEntity e = modelMapper.map(request, BookingEntity.class);
-        e.setStatus(parseStatus(request.getStatus(), BookingStatusEnum.PENDING));
-        return toRes(bookingRepository.save(e));
+    @Override
+    public GlobalResponse bookingSave(BookingRequest request) {
+        BookingEntity booking = new BookingEntity();
+        if (request.getId() != null) {
+            booking.setId(request.getId());
+        }
+        booking.setCustomerId(request.getCustomerId());
+        booking.setServiceId(request.getServiceId());
+        booking.setProviderId(request.getProviderId());
+        booking.setHandymanId(request.getHandymanId());
+        booking.setDate(request.getDate());
+        booking.setStartAt(request.getStartAt());
+        booking.setEndAt(request.getEndAt());
+        booking.setAmount(request.getAmount());
+        booking.setDiscount(request.getDiscount());
+        booking.setTotalAmount(request.getTotalAmount());
+        booking.setAddress(request.getAddress());
+        booking.setLatitude(request.getLatitude());
+        booking.setLongitude(request.getLongitude());
+        booking.setBookingSlot(request.getBookingSlot());
+        booking.setCouponId(request.getCouponId());
+        booking.setQuantity(request.getQuantity());
+        booking.setDescription(request.getDescription());
+        booking.setStatus(parseStatus(request.getStatus(), BookingStatusEnum.PENDING));
+        return GlobalResponseBuilder.buildSuccessResponse(
+                "message.booking.save.success", toResponse(bookingRepository.save(booking)));
     }
-    @Override public BookingResponse bookingUpdate(BookingRequest request) {
-        BookingEntity e = bookingRepository.findById(request.getId()).orElseThrow(() -> new GlobalException(BKG001.name()));
-        if (request.getStatus() != null) e.setStatus(parseStatus(request.getStatus(), e.getStatus()));
-        if (request.getHandymanId() != null) e.setHandymanId(request.getHandymanId());
-        if (request.getProviderId() != null) e.setProviderId(request.getProviderId());
-        if (request.getStartAt() != null) e.setStartAt(request.getStartAt());
-        if (request.getEndAt() != null) e.setEndAt(request.getEndAt());
-        if (request.getAddress() != null) e.setAddress(request.getAddress());
-        if (request.getLatitude() != null) e.setLatitude(request.getLatitude());
-        if (request.getLongitude() != null) e.setLongitude(request.getLongitude());
-        if (request.getDescription() != null) e.setDescription(request.getDescription());
-        if (request.getTotalAmount() != null) e.setTotalAmount(request.getTotalAmount());
-        return toRes(bookingRepository.save(e));
+
+    @Override
+    public GlobalResponse bookingUpdate(BookingRequest request) {
+        BookingEntity booking = bookingRepository.findById(request.getId())
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.BKG001.name()));
+        if (request.getStatus() != null) {
+            booking.setStatus(parseStatus(request.getStatus(), booking.getStatus()));
+        }
+        if (request.getHandymanId() != null) {
+            booking.setHandymanId(request.getHandymanId());
+        }
+        if (request.getProviderId() != null) {
+            booking.setProviderId(request.getProviderId());
+        }
+        if (request.getStartAt() != null) {
+            booking.setStartAt(request.getStartAt());
+        }
+        if (request.getEndAt() != null) {
+            booking.setEndAt(request.getEndAt());
+        }
+        if (request.getAddress() != null) {
+            booking.setAddress(request.getAddress());
+        }
+        if (request.getLatitude() != null) {
+            booking.setLatitude(request.getLatitude());
+        }
+        if (request.getLongitude() != null) {
+            booking.setLongitude(request.getLongitude());
+        }
+        if (request.getDescription() != null) {
+            booking.setDescription(request.getDescription());
+        }
+        if (request.getTotalAmount() != null) {
+            booking.setTotalAmount(request.getTotalAmount());
+        }
+        return GlobalResponseBuilder.buildSuccessResponse(
+                "message.booking.update.success", toResponse(bookingRepository.save(booking)));
     }
-    @Override @Transactional(readOnly = true)
-    public BookingResponse bookingDetail(UUID id) {
-        return toRes(bookingRepository.findById(id).orElseThrow(() -> new GlobalException(BKG001.name())));
+
+    @Override
+    public GlobalResponse bookingDetail(UUID id) {
+        BookingEntity booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.BKG001.name()));
+        return GlobalResponseBuilder.buildSuccessResponse(toResponse(booking));
     }
-    @Override @Transactional(readOnly = true)
-    public List<BookingResponse> bookingList(UUID customerId) {
-        List<BookingEntity> list = customerId != null ? bookingRepository.findByCustomerId(customerId) : bookingRepository.findAll();
-        return list.stream().map(this::toRes).collect(Collectors.toList());
+
+    @Override
+    public GlobalResponse bookingList(UUID customerId) {
+        List<BookingEntity> bookings;
+        if (customerId != null) {
+            bookings = bookingRepository.findByCustomerId(customerId);
+        } else {
+            bookings = bookingRepository.findAll();
+        }
+        List<BookingResponse> result = new ArrayList<>();
+        for (BookingEntity booking : bookings) {
+            result.add(toResponse(booking));
+        }
+        return GlobalResponseBuilder.buildSuccessResponse(result);
     }
-    @Override @Transactional(readOnly = true)
-    public List<BookingStatusResponse> bookingStatus() {
-        return bookingStatusRepository.findAll().stream().map(s -> modelMapper.map(s, BookingStatusResponse.class)).collect(Collectors.toList());
+
+    @Override
+    public GlobalResponse bookingStatus() {
+        List<BookingStatusResponse> statuses = new ArrayList<>();
+        for (BookingStatusEntity status : bookingStatusRepository.findAll()) {
+            statuses.add(BookingStatusResponse.builder()
+                    .id(status.getId())
+                    .value(status.getValue())
+                    .label(status.getLabel())
+                    .color(status.getColor())
+                    .sortOrder(status.getSortOrder())
+                    .build());
+        }
+        return GlobalResponseBuilder.buildSuccessResponse(statuses);
     }
-    @Override @Transactional(readOnly = true)
-    public LocationResponse getLocation(UUID bookingId) {
-        BookingEntity e = bookingRepository.findById(bookingId).orElseThrow(() -> new GlobalException(BKG001.name()));
-        return LocationResponse.builder().bookingId(e.getId()).latitude(e.getLatitude()).longitude(e.getLongitude()).address(e.getAddress()).build();
+
+    @Override
+    public GlobalResponse getLocation(UUID bookingId) {
+        BookingEntity booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.BKG001.name()));
+        return GlobalResponseBuilder.buildSuccessResponse(LocationResponse.builder()
+                .bookingId(booking.getId())
+                .latitude(booking.getLatitude())
+                .longitude(booking.getLongitude())
+                .address(booking.getAddress())
+                .build());
     }
-    @Override @Transactional(readOnly = true)
-    public String downloadInvoice(UUID bookingId) {
-        bookingRepository.findById(bookingId).orElseThrow(() -> new GlobalException(BKG001.name()));
-        return "Invoice stub for booking " + bookingId;
+
+    @Override
+    public GlobalResponse downloadInvoice(UUID bookingId) {
+        bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.BKG001.name()));
+        return GlobalResponseBuilder.buildSuccessResponse(
+                "message.booking.invoice.success", "Invoice stub for booking " + bookingId);
     }
-    @Override @Transactional(readOnly = true)
-    public List<CouponResponse> couponList(UUID serviceId) {
-        return couponRepository.findByServiceId(serviceId).stream().map(c -> {
-            CouponResponse r = modelMapper.map(c, CouponResponse.class);
-            r.setStatus(c.getStatus() != null ? c.getStatus().name() : null); return r;
-        }).collect(Collectors.toList());
+
+    @Override
+    public GlobalResponse couponList(UUID serviceId) {
+        List<CouponResponse> coupons = new ArrayList<>();
+        for (CouponEntity coupon : couponRepository.findByServiceId(serviceId)) {
+            String status = coupon.getStatus() == null ? null : coupon.getStatus().name();
+            coupons.add(CouponResponse.builder()
+                    .id(coupon.getId())
+                    .code(coupon.getCode())
+                    .description(coupon.getDescription())
+                    .discount(coupon.getDiscount())
+                    .discountType(coupon.getDiscountType())
+                    .serviceId(coupon.getServiceId())
+                    .expireDate(coupon.getExpireDate())
+                    .status(status)
+                    .build());
+        }
+        return GlobalResponseBuilder.buildSuccessResponse(coupons);
     }
-    private BookingStatusEnum parseStatus(String s, BookingStatusEnum def) {
-        if (s == null) return def;
-        try { return BookingStatusEnum.valueOf(s.trim().toUpperCase().replace("-", "_").replace(" ", "_")); }
-        catch (Exception ex) { throw new GlobalException(BKG003.name()); }
+
+    private BookingStatusEnum parseStatus(String status, BookingStatusEnum fallback) {
+        if (status == null) {
+            return fallback;
+        }
+        String normalized = status.trim().toUpperCase().replace("-", "_").replace(" ", "_");
+        try {
+            return BookingStatusEnum.valueOf(normalized);
+        } catch (IllegalArgumentException ex) {
+            throw new GlobalException(ErrorCodeEnum.BKG003.name());
+        }
     }
-    private BookingResponse toRes(BookingEntity e) {
-        BookingResponse r = modelMapper.map(e, BookingResponse.class);
-        r.setStatus(e.getStatus() != null ? e.getStatus().name() : null); return r;
+
+    private BookingResponse toResponse(BookingEntity booking) {
+        String status = booking.getStatus() == null ? null : booking.getStatus().name();
+        return BookingResponse.builder()
+                .id(booking.getId())
+                .customerId(booking.getCustomerId())
+                .serviceId(booking.getServiceId())
+                .providerId(booking.getProviderId())
+                .handymanId(booking.getHandymanId())
+                .date(booking.getDate())
+                .startAt(booking.getStartAt())
+                .endAt(booking.getEndAt())
+                .amount(booking.getAmount())
+                .discount(booking.getDiscount())
+                .totalAmount(booking.getTotalAmount())
+                .status(status)
+                .address(booking.getAddress())
+                .latitude(booking.getLatitude())
+                .longitude(booking.getLongitude())
+                .bookingSlot(booking.getBookingSlot())
+                .couponId(booking.getCouponId())
+                .quantity(booking.getQuantity())
+                .description(booking.getDescription())
+                .build();
     }
 }

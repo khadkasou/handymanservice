@@ -91,11 +91,6 @@ server:
   shutdown: graceful
   max-http-request-header-size: 30KB
 
-grpc:
-  server:
-    address: ${GRPC_SERVER_ADDRESS:0.0.0.0}
-    port: ${COMMUNICATION_GRPC_PORT:8911}
-
 services:
   master: http://master-service:8004/api/v2/master/
   user: http://user-service:8001/api/v2/user/
@@ -103,5 +98,5 @@ services:
 
 sms:
   username: ${SMS_USERNAME:RemitTest}
-  password: ${SMS_PASSWORD:Remit@Test123}
+  password: ${SMS_PASSWORD:}
   organizationCode: ${SMS_ORGANIZATION_CODE:RemitTest}

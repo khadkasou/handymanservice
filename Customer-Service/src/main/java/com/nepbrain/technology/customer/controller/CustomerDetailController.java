@@ -1,16 +1,14 @@
 package com.nepbrain.technology.customer.controller;
 
+import com.nepbrain.technology.core.enums.StatusEnum;
 import com.nepbrain.technology.customer.annotation.CustomCustomerRestController;
 import com.nepbrain.technology.customer.payload.request.CustomerDetailRequest;
-import com.nepbrain.technology.customer.payload.response.CustomerDetailResponse;
 import com.nepbrain.technology.customer.service.CustomerDetailService;
 import com.nepbrain.technology.core.payload.response.GlobalResponse;
-import com.nepbrain.technology.core.payload.response.GlobalResponseBuilder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,51 +24,42 @@ public class CustomerDetailController {
     @PostMapping("/customer-detail")
     @Operation(summary = "Create customer detail")
     public ResponseEntity<GlobalResponse> create(@Valid @RequestBody CustomerDetailRequest request) {
-        CustomerDetailResponse response = detailService.create(request);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(GlobalResponseBuilder.buildSuccessResponse("CUSTOMER_DETAIL_CREATED", response));
+        return ResponseEntity.ok().body(detailService.create(request));
     }
 
     @PutMapping("/customer-detail/{id}")
     @Operation(summary = "Update customer detail")
     public ResponseEntity<GlobalResponse> update(@PathVariable UUID id, @Valid @RequestBody CustomerDetailRequest request) {
-        CustomerDetailResponse response = detailService.update(id, request);
-        return ResponseEntity.ok(GlobalResponseBuilder.buildSuccessResponse("CUSTOMER_DETAIL_UPDATED", response));
+        return ResponseEntity.ok().body(detailService.update(id, request));
     }
 
     @PutMapping("/customer-detail/customer/{customerId}")
     @Operation(summary = "Update customer detail by customer ID")
     public ResponseEntity<GlobalResponse> updateByCustomerId(@PathVariable UUID customerId, @Valid @RequestBody CustomerDetailRequest request) {
-        CustomerDetailResponse response = detailService.updateByCustomerId(customerId, request);
-        return ResponseEntity.ok(GlobalResponseBuilder.buildSuccessResponse("CUSTOMER_DETAIL_UPDATED", response));
+        return ResponseEntity.ok().body(detailService.updateByCustomerId(customerId, request));
     }
 
     @GetMapping("/customer-detail/{id}")
     @Operation(summary = "Get customer detail by ID")
     public ResponseEntity<GlobalResponse> getById(@PathVariable UUID id) {
-        CustomerDetailResponse response = detailService.getById(id);
-        return ResponseEntity.ok(GlobalResponseBuilder.buildSuccessResponse("CUSTOMER_DETAIL_FETCHED", response));
+        return ResponseEntity.ok().body(detailService.getById(id));
     }
 
     @GetMapping("/customer-detail/customer/{customerId}")
     @Operation(summary = "Get customer detail by customer ID")
     public ResponseEntity<GlobalResponse> getByCustomerId(@PathVariable UUID customerId) {
-        CustomerDetailResponse response = detailService.getByCustomerId(customerId);
-        return ResponseEntity.ok(GlobalResponseBuilder.buildSuccessResponse("CUSTOMER_DETAIL_FETCHED", response));
+        return ResponseEntity.ok().body(detailService.getByCustomerId(customerId));
     }
 
-    @DeleteMapping("/customer-detail/{id}")
-    @Operation(summary = "Delete customer detail")
-    public ResponseEntity<GlobalResponse> delete(@PathVariable UUID id) {
-        detailService.delete(id);
-        return ResponseEntity.ok(GlobalResponseBuilder.buildSuccessResponse("CUSTOMER_DETAIL_DELETED", null));
+    @PutMapping("/customer-detail/{id}/status")
+    @Operation(summary = "Change customer detail status")
+    public ResponseEntity<GlobalResponse> changeStatus(@PathVariable UUID id, @RequestParam StatusEnum status) {
+        return ResponseEntity.ok().body(detailService.changeStatus(id, status));
     }
 
-    @DeleteMapping("/customer-detail/customer/{customerId}")
-    @Operation(summary = "Delete customer detail by customer ID")
-    public ResponseEntity<GlobalResponse> deleteByCustomerId(@PathVariable UUID customerId) {
-        detailService.deleteByCustomerId(customerId);
-        return ResponseEntity.ok(GlobalResponseBuilder.buildSuccessResponse("CUSTOMER_DETAIL_DELETED", null));
+    @PutMapping("/customer-detail/customer/{customerId}/status")
+    @Operation(summary = "Change customer detail status by customer ID")
+    public ResponseEntity<GlobalResponse> changeStatusByCustomerId(@PathVariable UUID customerId, @RequestParam StatusEnum status) {
+        return ResponseEntity.ok().body(detailService.changeStatusByCustomerId(customerId, status));
     }
 }
-

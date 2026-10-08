@@ -1,7 +1,17 @@
 package com.nepbrain.technology.geo.payload.response;
+
 import lombok.*;
-import java.math.BigDecimal; import java.time.LocalDate; import java.time.LocalDateTime; import java.util.List; import java.util.Map; import java.util.UUID;
-@Getter @Setter @AllArgsConstructor @NoArgsConstructor @Builder
+
+import java.util.UUID;
+
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class CountryResponse {
-private UUID id; private String name; private String code;
+
+    private UUID id;
+    private String name;
+    private String code;
 }

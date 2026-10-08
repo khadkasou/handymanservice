@@ -1,5 +1,11 @@
 package com.nepbrain.technology.blog.service;
 
+import com.nepbrain.technology.core.enums.ApiStatusEnum;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import com.nepbrain.technology.blog.entity.BlogEntity;
 import com.nepbrain.technology.blog.payload.response.BlogResponse;
 import com.nepbrain.technology.blog.repository.BlogRepository;
@@ -20,27 +26,18 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 @ExtendWith(MockitoExtension.class)
 class BlogServiceImplTest {
 
     @Mock private BlogRepository blogRepository;
 
-    @Spy
-    private ModelMapper modelMapper = configuredMapper();
+    @Spy private ModelMapper modelMapper = configuredMapper();
 
-    @InjectMocks
-    private BlogServiceImpl blogService;
+    @InjectMocks private BlogServiceImpl blogService;
 
     private static ModelMapper configuredMapper() {
         ModelMapper mapper = new ModelMapper();
-        mapper.getConfiguration()
-                .setFieldMatchingEnabled(true)
-                .setFieldAccessLevel(AccessLevel.PRIVATE)
+        mapper.getConfiguration().setFieldMatchingEnabled(true).setFieldAccessLevel(AccessLevel.PRIVATE)
                 .setMatchingStrategy(MatchingStrategies.STRICT)
                 .setSkipNullEnabled(true);
         return mapper;
@@ -59,8 +56,7 @@ class BlogServiceImplTest {
         blog.setId(UUID.randomUUID());
         when(blogRepository.findByStatus(StatusEnum.ACTIVE)).thenReturn(List.of(blog));
 
-        List<BlogResponse> result = blogService.blogList();
-
+        List<BlogResponse> result = (List<BlogResponse>) blogService.blogList().getData();
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().getTitle()).isEqualTo("Tips");
         assertThat(result.getFirst().getStatus()).isEqualTo("ACTIVE");
@@ -80,8 +76,7 @@ class BlogServiceImplTest {
         blog.setId(id);
         when(blogRepository.findById(id)).thenReturn(Optional.of(blog));
 
-        BlogResponse response = blogService.blogDetail(id);
-
+        BlogResponse response = (BlogResponse) blogService.blogDetail(id).getData();
         assertThat(response.getId()).isEqualTo(id);
         assertThat(response.getTitle()).isEqualTo("Detail");
         assertThat(response.getStatus()).isEqualTo("ACTIVE");
@@ -93,8 +88,7 @@ class BlogServiceImplTest {
         UUID id = UUID.randomUUID();
         when(blogRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> blogService.blogDetail(id))
-                .isInstanceOf(GlobalException.class)
+        assertThatThrownBy(() -> blogService.blogDetail(id)).isInstanceOf(GlobalException.class)
                 .extracting(ex -> ((GlobalException) ex).getCode())
                 .isEqualTo("BLG001");
     }

@@ -1,5 +1,10 @@
 package com.nepbrain.technology.geo.service;
 
+import com.nepbrain.technology.core.enums.ApiStatusEnum;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import com.nepbrain.technology.core.enums.StatusEnum;
 import com.nepbrain.technology.geo.entity.CityEntity;
 import com.nepbrain.technology.geo.entity.CountryEntity;
@@ -24,10 +29,6 @@ import org.modelmapper.convention.MatchingStrategies;
 import java.util.List;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 @ExtendWith(MockitoExtension.class)
 class GeoServiceImplTest {
 
@@ -35,17 +36,13 @@ class GeoServiceImplTest {
     @Mock private StateRepository stateRepository;
     @Mock private CityRepository cityRepository;
 
-    @Spy
-    private ModelMapper modelMapper = configuredMapper();
+    @Spy private ModelMapper modelMapper = configuredMapper();
 
-    @InjectMocks
-    private GeoServiceImpl geoService;
+    @InjectMocks private GeoServiceImpl geoService;
 
     private static ModelMapper configuredMapper() {
         ModelMapper mapper = new ModelMapper();
-        mapper.getConfiguration()
-                .setFieldMatchingEnabled(true)
-                .setFieldAccessLevel(AccessLevel.PRIVATE)
+        mapper.getConfiguration().setFieldMatchingEnabled(true).setFieldAccessLevel(AccessLevel.PRIVATE)
                 .setMatchingStrategy(MatchingStrategies.STRICT)
                 .setSkipNullEnabled(true);
         return mapper;
@@ -53,16 +50,11 @@ class GeoServiceImplTest {
 
     @Test
     void countryList_success() {
-        CountryEntity country = CountryEntity.builder()
-                .name("Nepal")
-                .code("NP")
-                .status(StatusEnum.ACTIVE)
-                .build();
+        CountryEntity country = CountryEntity.builder().name("Nepal").code("NP").status(StatusEnum.ACTIVE).build();
         country.setId(UUID.randomUUID());
         when(countryRepository.findAll()).thenReturn(List.of(country));
 
-        List<CountryResponse> result = geoService.countryList();
-
+        List<CountryResponse> result = (List<CountryResponse>) geoService.countryList().getData();
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().getName()).isEqualTo("Nepal");
         assertThat(result.getFirst().getCode()).isEqualTo("NP");
@@ -80,8 +72,7 @@ class GeoServiceImplTest {
         state.setId(UUID.randomUUID());
         when(stateRepository.findByCountryId(countryId)).thenReturn(List.of(state));
 
-        List<StateResponse> result = geoService.stateList(countryId);
-
+        List<StateResponse> result = (List<StateResponse>) geoService.stateList(countryId).getData();
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().getName()).isEqualTo("Bagmati");
         assertThat(result.getFirst().getCountryId()).isEqualTo(countryId);
@@ -99,8 +90,7 @@ class GeoServiceImplTest {
         city.setId(UUID.randomUUID());
         when(cityRepository.findByStateId(stateId)).thenReturn(List.of(city));
 
-        List<CityResponse> result = geoService.cityList(stateId);
-
+        List<CityResponse> result = (List<CityResponse>) geoService.cityList(stateId).getData();
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().getName()).isEqualTo("Kathmandu");
         assertThat(result.getFirst().getStateId()).isEqualTo(stateId);

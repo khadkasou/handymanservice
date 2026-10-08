@@ -63,7 +63,7 @@ public class BucketServiceImpl implements BucketService {
     @Override
     public GlobalResponse uploadImage(ServerHttpRequest request, BucketRequest bucketRequest) throws GlobalException {
         String url = uploadImageAndGetUrl(bucketRequest);
-        return GlobalResponseBuilder.buildSuccessResponse("Document uploaded successfully.", url);
+        return GlobalResponseBuilder.buildSuccessResponse("message.bucket.upload.success", url);
     }
 
     @Override

@@ -11,10 +11,9 @@ import org.springframework.http.HttpStatus;
 @NoArgsConstructor
 @Builder
 public final class GlobalResponse {
+
     private ApiStatusEnum status;
-    @JsonIgnore
-    @Builder.Default
-    private HttpStatus httpStatus = HttpStatus.OK;
+    @JsonIgnore @Builder.Default private HttpStatus httpStatus = HttpStatus.OK;
     private String code;
     private Object data;
     private String message;

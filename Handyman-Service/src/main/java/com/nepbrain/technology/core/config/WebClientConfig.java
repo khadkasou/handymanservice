@@ -12,7 +12,6 @@ public class WebClientConfig {
     @Bean
     @LoadBalanced
     public WebClient.Builder webClient() {
-        return WebClient.builder()
-                .filter(new ServletBearerExchangeFilterFunction());
+        return WebClient.builder().filter(new ServletBearerExchangeFilterFunction());
     }
 }

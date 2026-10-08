@@ -68,7 +68,7 @@ public class CommunicationServiceImpl implements CommunicationService {
     private static final SimpleTemplateEngine engine = new SimpleTemplateEngine();
 
     @Override
-    public String send(CommunicationRequest request) throws GlobalException {
+    public GlobalResponse send(CommunicationRequest request) throws GlobalException {
         MessageEntity message = messageRepository.findByTopic(request.getTopic());
         MessageDetailEntity messageDetail = message.getMessages()
                 .stream()
@@ -153,7 +153,7 @@ public class CommunicationServiceImpl implements CommunicationService {
             }
             communicationRepository.save(communication);
         }
-        return "success";
+        return GlobalResponseBuilder.buildSuccessResponse("message.communication.sent.success", "success");
     }
 
     @Override
@@ -263,18 +263,18 @@ public class CommunicationServiceImpl implements CommunicationService {
                 .status(OTPStatusEnum.PENDING)
                 .build();
         otpRepository.save(otpEntity);
-        return GlobalResponseBuilder.buildSuccessResponse( "Otp Sent success", otpData);
+        return GlobalResponseBuilder.buildSuccessResponse("message.otp.sent.success", otpData);
     }
 
     @Override
     public GlobalResponse verifyOTP(OTPVerifyRequest request) throws GlobalException {
         OTPEntity otpEntity = otpRepository.findFirstByUsernameAndTopicOrderByCreatedAtDesc(request.getUsername(), request.getTopic());
         if (otpEntity == null) {
-            throw new GlobalException("OTP001");
+            throw new GlobalException(ErrorCodeEnum.OTP001.name());
         }
         if (request.getCode()
                 .length() != otpLength) {
-            throw new GlobalException("OTP002");
+            throw new GlobalException(ErrorCodeEnum.OTP002.name());
         }
         if (otpEntity.getStatus().equals(OTPStatusEnum.FAILED)) {
             return GlobalResponseBuilder.buildFailResponse("Otp expired.");
@@ -288,11 +288,11 @@ public class CommunicationServiceImpl implements CommunicationService {
         }
         if (!request.getCode()
                 .equals(aesService.decrypt(otpEntity.getCode()))) {
-            throw new GlobalException("OTP004");
+            throw new GlobalException(ErrorCodeEnum.OTP004.name());
         }
         otpEntity.setStatus(OTPStatusEnum.VERIFIED);
         otpRepository.save(otpEntity);
-        return GlobalResponseBuilder.buildSuccessResponse(null, "OTP verified successfully.");
+        return GlobalResponseBuilder.buildSuccessResponse("message.otp.verified.success");
     }
 
     @Override
@@ -308,7 +308,7 @@ public class CommunicationServiceImpl implements CommunicationService {
                 .totalElementCount(communicationEntityPage.getTotalElements())
                 .result(communicationLogResponses)
                 .build();
-        return GlobalResponseBuilder.buildSuccessResponse("", datapaginationResponse);
+        return GlobalResponseBuilder.buildSuccessResponse(datapaginationResponse);
     }
 
     @Override
@@ -331,7 +331,7 @@ public class CommunicationServiceImpl implements CommunicationService {
                     .build();
             topicEnumResponses.add(topicEnumResponse);
         }
-        return GlobalResponseBuilder.buildSuccessResponse("", topicEnumResponses);
+        return GlobalResponseBuilder.buildSuccessResponse(topicEnumResponses);
     }
 
 }

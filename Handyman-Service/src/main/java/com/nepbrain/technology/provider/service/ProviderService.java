@@ -1,15 +1,30 @@
 package com.nepbrain.technology.provider.service;
-import com.nepbrain.technology.auth.payload.response.UserResponse;
+
+import com.nepbrain.technology.core.enums.StatusEnum;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
 import com.nepbrain.technology.provider.payload.request.*;
-import com.nepbrain.technology.provider.payload.response.HandymanRatingResponse;
-import java.util.List; import java.util.UUID;
+
+import java.util.UUID;
+
 public interface ProviderService {
-    List<UserResponse> userList(String userType);
-    UserResponse providerDetail(UUID id);
-    void saveFavouriteProvider(FavouriteProviderRequest request);
-    void deleteFavouriteProvider(FavouriteProviderRequest request);
-    List<UserResponse> userFavouriteProvider(UUID userId);
-    HandymanRatingResponse saveHandymanRating(HandymanRatingRequest request);
-    List<HandymanRatingResponse> handymanReviews(UUID handymanId);
-    void deleteHandymanRating(UUID id);
+
+    GlobalResponse userList(String userType);
+
+    GlobalResponse providerDetail(UUID id);
+
+    GlobalResponse saveFavouriteProvider(FavouriteProviderRequest request);
+
+    GlobalResponse changeFavouriteProviderStatus(FavouriteProviderRequest request, StatusEnum status);
+
+    GlobalResponse deleteFavouriteProvider(FavouriteProviderRequest request);
+
+    GlobalResponse userFavouriteProvider(UUID userId);
+
+    GlobalResponse saveHandymanRating(HandymanRatingRequest request);
+
+    GlobalResponse handymanReviews(UUID handymanId);
+
+    GlobalResponse changeHandymanRatingStatus(UUID id, StatusEnum status);
+
+    GlobalResponse deleteHandymanRating(UUID id);
 }

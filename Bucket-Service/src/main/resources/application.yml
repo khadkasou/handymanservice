@@ -71,15 +71,6 @@ server:
   url: http://localhost:8006
   max-http-request-header-size: 30KB
 
-grpc:
-  server:
-    address: ${GRPC_SERVER_ADDRESS:0.0.0.0}
-    port: ${GRPC_SERVER_PORT:8906}
-  client:
-    user-service:
-      address: ${USER_SERVICE_GRPC_ADDRESS:static://localhost:8901}
-      negotiationType: PLAINTEXT
-
 otp:
   length: 4
   expiry-time-second: 600
@@ -106,7 +97,7 @@ springdoc:
     tags-sorter: alpha
     try-it-out-enabled: true
   show-actuator: false
-  packages-to-scan: com.nepbrain.technology.bucket.controller, com.nepbrain.technology.communication.controller
+  packages-to-scan: com.nepbrain.technology.bucket.controller
 
 kafka:
   topic:
@@ -124,7 +115,7 @@ services:
 
 sms:
   username: ${SMS_USERNAME:RemitTest}
-  password: ${SMS_PASSWORD:Remit@Test123}
+  password: ${SMS_PASSWORD:}
   organizationCode: ${SMS_ORGANIZATION_CODE:RemitTest}
 
 firebase:

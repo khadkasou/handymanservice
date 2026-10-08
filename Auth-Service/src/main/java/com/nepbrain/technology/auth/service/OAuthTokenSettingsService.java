@@ -4,6 +4,8 @@ import com.nepbrain.technology.auth.config.JpaRegisteredClientRepository;
 import com.nepbrain.technology.auth.exception.ServiceException;
 import com.nepbrain.technology.auth.payload.request.OAuthTokenSettingsRequest;
 import com.nepbrain.technology.auth.payload.response.OAuthTokenSettingsResponse;
+import com.nepbrain.technology.auth.payload.response.ServiceResponse;
+import com.nepbrain.technology.auth.payload.response.ServiceResponseBuilder;
 import com.nepbrain.technology.auth.repository.ClientRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,13 +34,13 @@ public class OAuthTokenSettingsService {
     private String oauthClientId;
 
     @Transactional(readOnly = true)
-    public OAuthTokenSettingsResponse getCurrent() {
+    public ServiceResponse getCurrent() {
         RegisteredClient client = requireClient();
-        return toResponse(client);
+        return ServiceResponseBuilder.buildSuccess("message.oauth.settings.loaded.success", toResponse(client));
     }
 
     @Transactional
-    public OAuthTokenSettingsResponse update(OAuthTokenSettingsRequest request) {
+    public ServiceResponse update(OAuthTokenSettingsRequest request) {
         if (request == null) {
             throw new ServiceException("OTS001", "Request body is required", HttpStatus.BAD_REQUEST);
         }
@@ -68,7 +70,7 @@ public class OAuthTokenSettingsService {
                 .tokenSettings(tokenBuilder.build())
                 .build();
         registeredClientRepository.save(updated);
-        return toResponse(requireClient());
+        return ServiceResponseBuilder.buildSuccess("message.oauth.settings.updated.success", toResponse(requireClient()));
     }
 
     private RegisteredClient requireClient() {

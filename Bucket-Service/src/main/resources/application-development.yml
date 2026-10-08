@@ -69,15 +69,6 @@ server:
   url: ${SERVER_URL:https://api-erp.jojolapatech.com}
   max-http-request-header-size: 30KB
 
-grpc:
-  server:
-    address: ${GRPC_SERVER_ADDRESS:0.0.0.0}
-    port: ${GRPC_SERVER_PORT:8906}
-  client:
-    user-service:
-      address: ${USER_SERVICE_GRPC_ADDRESS:static://user-service:8901}
-      negotiationType: PLAINTEXT
-
 otp:
   length: 4
   expiry-time-second: 600

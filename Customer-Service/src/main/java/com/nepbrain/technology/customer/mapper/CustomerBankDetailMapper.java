@@ -10,6 +10,7 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface CustomerBankDetailMapper {
     @Mapping(target = "customer", ignore = true)
+    @Mapping(target = "status", ignore = true)
     CustomerBankDetailEntity toEntity(CustomerBankDetailRequest request);
     
     @Mapping(target = "customerId", source = "customer.id")
@@ -17,6 +18,7 @@ public interface CustomerBankDetailMapper {
     CustomerBankDetailResponse toResponse(CustomerBankDetailEntity entity);
     
     @Mapping(target = "customer", ignore = true)
+    @Mapping(target = "status", ignore = true)
     void updateEntity(CustomerBankDetailRequest request, @MappingTarget CustomerBankDetailEntity entity);
 }
 

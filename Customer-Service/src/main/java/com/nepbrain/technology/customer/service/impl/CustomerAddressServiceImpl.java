@@ -1,6 +1,9 @@
 package com.nepbrain.technology.customer.service.impl;
 
+import com.nepbrain.technology.core.enums.StatusEnum;
 import com.nepbrain.technology.core.exception.GlobalException;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import com.nepbrain.technology.core.payload.response.GlobalResponseBuilder;
 import com.nepbrain.technology.customer.entity.CustomerAddressEntity;
 import com.nepbrain.technology.customer.entity.CustomerEntity;
 import com.nepbrain.technology.customer.enums.AddressTypeEnum;
@@ -30,10 +33,9 @@ public class CustomerAddressServiceImpl implements CustomerAddressService {
     private final CustomerAddressMapper addressMapper;
 
     @Override
-    public CustomerAddressResponse create(CustomerAddressRequest request) {
-        // Validate customer exists
+    public GlobalResponse create(CustomerAddressRequest request) {
         CustomerEntity customer = customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.ERR002.name(), HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUS002.name()));
 
         // If this is set as primary, unset other primary addresses
         if (Boolean.TRUE.equals(request.getIsPrimary())) {
@@ -46,19 +48,21 @@ public class CustomerAddressServiceImpl implements CustomerAddressService {
 
         CustomerAddressEntity entity = addressMapper.toEntity(request);
         entity.setCustomer(customer);
+        if (entity.getStatus() == null) {
+            entity.setStatus(StatusEnum.ACTIVE);
+        }
         CustomerAddressEntity saved = addressRepository.save(entity);
-        return addressMapper.toResponse(saved);
+        return GlobalResponseBuilder.buildSuccessResponse("message.customer.address.create.success", addressMapper.toResponse(saved));
     }
 
     @Override
-    public CustomerAddressResponse update(UUID id, CustomerAddressRequest request) {
+    public GlobalResponse update(UUID id, CustomerAddressRequest request) {
         CustomerAddressEntity entity = addressRepository.findById(id)
-                .orElseThrow(() -> new GlobalException("CUSTOMER_ADDRESS_NOT_FOUND", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUSA001.name()));
 
-        // Validate customer exists if changed
         if (!entity.getCustomer().getId().equals(request.getCustomerId())) {
             CustomerEntity customer = customerRepository.findById(request.getCustomerId())
-                    .orElseThrow(() -> new GlobalException(ErrorCodeEnum.ERR002.name(), HttpStatus.NOT_FOUND));
+                    .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUS002.name()));
             entity.setCustomer(customer);
         }
 
@@ -74,48 +78,58 @@ public class CustomerAddressServiceImpl implements CustomerAddressService {
 
         addressMapper.updateEntity(request, entity);
         CustomerAddressEntity saved = addressRepository.save(entity);
-        return addressMapper.toResponse(saved);
+        return GlobalResponseBuilder.buildSuccessResponse("message.customer.address.update.success", addressMapper.toResponse(saved));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public CustomerAddressResponse getById(UUID id) {
+    public GlobalResponse getById(UUID id) {
         CustomerAddressEntity entity = addressRepository.findById(id)
-                .orElseThrow(() -> new GlobalException("CUSTOMER_ADDRESS_NOT_FOUND", HttpStatus.NOT_FOUND));
-        return addressMapper.toResponse(entity);
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUSA001.name()));
+        return GlobalResponseBuilder.buildSuccessResponse(addressMapper.toResponse(entity));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<CustomerAddressResponse> getByCustomerId(UUID customerId) {
-        List<CustomerAddressEntity> entities = addressRepository.findByCustomerId(customerId);
-        return entities.stream()
+    public GlobalResponse getByCustomerId(UUID customerId) {
+        List<CustomerAddressResponse> addresses = addressRepository.findByCustomerId(customerId).stream()
                 .map(addressMapper::toResponse)
                 .collect(Collectors.toList());
+        return GlobalResponseBuilder.buildSuccessResponse(addresses);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<CustomerAddressResponse> getByCustomerIdAndAddressType(UUID customerId, AddressTypeEnum addressType) {
-        List<CustomerAddressEntity> entities = addressRepository.findByCustomerIdAndAddressType(customerId, addressType);
-        return entities.stream()
+    public GlobalResponse getByCustomerIdAndAddressType(UUID customerId, String addressType) {
+        AddressTypeEnum type;
+        try {
+            type = AddressTypeEnum.valueOf(addressType.toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new GlobalException(ErrorCodeEnum.CUSA004.name(), HttpStatus.BAD_REQUEST);
+        }
+        List<CustomerAddressResponse> addresses = addressRepository.findByCustomerIdAndAddressType(customerId, type).stream()
                 .map(addressMapper::toResponse)
                 .collect(Collectors.toList());
+        return GlobalResponseBuilder.buildSuccessResponse(addresses);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public CustomerAddressResponse getPrimaryByCustomerId(UUID customerId) {
+    public GlobalResponse getPrimaryByCustomerId(UUID customerId) {
         CustomerAddressEntity entity = addressRepository.findByCustomerIdAndIsPrimaryTrue(customerId)
-                .orElseThrow(() -> new GlobalException("PRIMARY_ADDRESS_NOT_FOUND", HttpStatus.NOT_FOUND));
-        return addressMapper.toResponse(entity);
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUSA002.name()));
+        return GlobalResponseBuilder.buildSuccessResponse(addressMapper.toResponse(entity));
     }
 
     @Override
-    public void delete(UUID id) {
+    public GlobalResponse changeStatus(UUID id, StatusEnum status) {
+        if (status != StatusEnum.ACTIVE && status != StatusEnum.INACTIVE) {
+            throw new GlobalException(ErrorCodeEnum.CUSA003.name());
+        }
         CustomerAddressEntity entity = addressRepository.findById(id)
-                .orElseThrow(() -> new GlobalException("CUSTOMER_ADDRESS_NOT_FOUND", HttpStatus.NOT_FOUND));
-        addressRepository.delete(entity);
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUSA001.name(), HttpStatus.BAD_REQUEST));
+        entity.setStatus(status);
+        return GlobalResponseBuilder.buildSuccessResponse("message.customer.address.status.success", addressMapper.toResponse(addressRepository.save(entity)));
     }
 }
 

@@ -1,5 +1,6 @@
 package com.nepbrain.technology.communication.service.impl;
 
+import com.nepbrain.technology.communication.enums.ErrorCodeEnum;
 import com.nepbrain.technology.communication.payload.request.MFARequest;
 import com.nepbrain.technology.communication.payload.request.MFAVerifyRequest;
 import com.nepbrain.technology.communication.payload.response.MfaResponse;
@@ -55,7 +56,7 @@ public class MfaServiceImpl implements MfaService {
         try {
             imageData = generator.generate(data);
         } catch (QrGenerationException e) {
-            throw new GlobalException("QR001");
+            throw new GlobalException(ErrorCodeEnum.QR001.name());
         }
 
         String mimeType = generator.getImageMimeType();
@@ -68,9 +69,9 @@ public class MfaServiceImpl implements MfaService {
         CodeGenerator codeGenerator = new DefaultCodeGenerator();
         CodeVerifier verifier = new DefaultCodeVerifier(codeGenerator, timeProvider);
         if (!verifier.isValidCode(mfaVerifyRequest.getSecret(), mfaVerifyRequest.getCode())) {
-            throw new GlobalException("MFA001");
+            throw new GlobalException(ErrorCodeEnum.MFA001.name());
         }
-        return GlobalResponseBuilder.buildSuccessResponse("MFA Code verified successfully");
+        return GlobalResponseBuilder.buildSuccessResponse("message.mfa.verified.success");
     }
 
 
@@ -81,6 +82,6 @@ public class MfaServiceImpl implements MfaService {
         MfaResponse mfaResponse = MfaResponse.builder()
                 .code(otp)
                 .qrImage(qrCode).build();
-        return GlobalResponseBuilder.buildSuccessResponseWithData(null, "QR Code Generated Successfully", mfaResponse);
+        return GlobalResponseBuilder.buildSuccessResponse("message.mfa.qr.success", mfaResponse);
     }
 }

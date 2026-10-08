@@ -1,11 +1,14 @@
 package com.nepbrain.technology.communication.service;
 
-import com.nepbrain.technology.communication.client.UserProviderGrpcClient;
+import com.nepbrain.technology.communication.webclient.UserCommunication;
+import com.nepbrain.technology.communication.webclient.UserContact;
 import com.nepbrain.technology.communication.enums.LanguageEnum;
 import com.nepbrain.technology.communication.payload.request.BulkSendRequest;
 import com.nepbrain.technology.communication.payload.request.CommunicationRequest;
 import com.nepbrain.technology.communication.payload.response.BulkSendResultResponse;
 import com.nepbrain.technology.core.exception.GlobalException;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import com.nepbrain.technology.core.payload.response.GlobalResponseBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,20 +21,20 @@ import java.util.List;
 @RequiredArgsConstructor
 public class BulkSendService {
 
-    private final UserProviderGrpcClient userProviderGrpcClient;
+    private final UserCommunication userCommunication;
     private final CommunicationService communicationService;
 
-    public BulkSendResultResponse sendBulk(BulkSendRequest request) throws GlobalException {
+    public GlobalResponse sendBulk(BulkSendRequest request) throws GlobalException {
         boolean fetchAll = request.getTargetType() == BulkSendRequest.TargetType.ALL;
         List<String> roleIds = request.getTargetType() == BulkSendRequest.TargetType.ROLE ? request.getRoleIds() : null;
         List<String> userIds = request.getTargetType() == BulkSendRequest.TargetType.SELECTED ? request.getUserIds() : null;
 
-        List<UserProviderGrpcClient.UserContactDto> users = userProviderGrpcClient.getUsersForBulkMessage(fetchAll, roleIds, userIds);
+        List<UserContact> users = userCommunication.getUsersForBulkMessage(fetchAll, roleIds, userIds);
 
         int totalUsers = users.size();
         int emailSent = 0, emailFailed = 0, smsSent = 0, smsFailed = 0, notificationSent = 0, notificationFailed = 0;
 
-        for (UserProviderGrpcClient.UserContactDto u : users) {
+        for (UserContact u : users) {
             Long mobile = null;
             if (u.getMobileNumber() != null && !u.getMobileNumber().isBlank()) {
                 String digits = u.getMobileNumber().replaceAll("\\D", "");
@@ -85,7 +88,7 @@ public class BulkSendService {
             }
         }
 
-        return BulkSendResultResponse.builder()
+        BulkSendResultResponse result = BulkSendResultResponse.builder()
                 .totalUsers(totalUsers)
                 .emailSent(emailSent)
                 .emailFailed(emailFailed)
@@ -94,5 +97,6 @@ public class BulkSendService {
                 .notificationSent(notificationSent)
                 .notificationFailed(notificationFailed)
                 .build();
+        return GlobalResponseBuilder.buildSuccessResponse("message.bulk.sent.success", result);
     }
 }

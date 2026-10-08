@@ -4,9 +4,7 @@ import com.nepbrain.technology.communication.enums.StatusEnum;
 import com.nepbrain.technology.communication.payload.request.MessageDataRequest;
 import com.nepbrain.technology.communication.payload.request.MessageDetailRequest;
 import com.nepbrain.technology.communication.payload.request.MessageRequest;
-import com.nepbrain.technology.communication.payload.response.DatapaginationResponse;
-import com.nepbrain.technology.communication.payload.response.MessageDetailResponse;
-import com.nepbrain.technology.communication.payload.response.MessageResponse;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
 
 import java.util.UUID;
 
@@ -16,19 +14,19 @@ import java.util.UUID;
  */
 public interface MessageService {
 
-    void create(MessageRequest request);
+    GlobalResponse create(MessageRequest request);
 
-    void update(MessageRequest request);
+    GlobalResponse update(MessageRequest request);
 
-    MessageResponse getById(UUID id);
+    GlobalResponse getById(UUID id);
 
-    DatapaginationResponse getAll(MessageDataRequest request);
+    GlobalResponse getAll(MessageDataRequest request);
 
-    void delete(UUID id);
+    GlobalResponse delete(UUID id);
 
-    void changeStatus(UUID id, StatusEnum status);
+    GlobalResponse changeStatus(UUID id, StatusEnum status);
 
-    MessageDetailResponse addDetail(UUID messageId, MessageDetailRequest request);
+    GlobalResponse addDetail(UUID messageId, MessageDetailRequest request);
 
-    MessageDetailResponse updateDetail(UUID detailId, MessageDetailRequest request);
+    GlobalResponse updateDetail(UUID detailId, MessageDetailRequest request);
 }

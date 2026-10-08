@@ -1,6 +1,6 @@
 package com.nepbrain.technology.core.entity;
 
-import jakarta.persistence.*;
+import static com.nepbrain.technology.core.config.security.CurrentUser.getUser;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
@@ -9,11 +9,10 @@ import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import jakarta.persistence.*;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.UUID;
-
-import static com.nepbrain.technology.core.config.security.CurrentUser.getUser;
 
 @MappedSuperclass
 @Getter
@@ -26,8 +25,7 @@ public abstract class BaseAuditEntity implements Serializable {
     @Column(nullable = false, updatable = false)
     private UUID id;
 
-    @Version
-    private Long version;
+    @Version private Long version;
 
     /** Automatically set when entity is first persisted */
     @CreationTimestamp
@@ -44,14 +42,17 @@ public abstract class BaseAuditEntity implements Serializable {
     @Column(updatable = false)
     private UUID createdBy;
 
-    @LastModifiedBy
-    private UUID lastModifiedBy;
+    @LastModifiedBy private UUID lastModifiedBy;
 
     /** In case auditing is not enabled or you want fallback logic */
     @PrePersist
     public void prePersist() {
-        if (createdBy == null) createdBy = getUser();
-        if (lastModifiedBy == null) lastModifiedBy = getUser();
+        if (createdBy == null) {
+            createdBy = getUser();
+        }
+        if (lastModifiedBy == null) {
+            lastModifiedBy = getUser();
+        }
     }
 
     @PreUpdate

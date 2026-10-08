@@ -6,9 +6,8 @@ import org.springframework.boot.configurationprocessor.json.JSONObject;
 import org.springframework.util.ObjectUtils;
 
 public class JsonConverter {
-    private JsonConverter() {
 
-    }
+    private JsonConverter() {}
 
     public static String textToJson(String text) {
         JSONObject headersJson = new JSONObject();
@@ -29,7 +28,7 @@ public class JsonConverter {
                 // If it's a comma and we're not inside quotes, process the current part
                 if (currentChar == ',' && !inQuotes) {
                     processHeaderPart(currentPart.toString(), headersJson);
-                    currentPart.setLength(0);  // Reset the buffer for the next part
+                    currentPart.setLength(0); // Reset the buffer for the next part
                 } else {
                     // Otherwise, keep appending characters to the current part
                     currentPart.append(currentChar);
@@ -58,5 +57,4 @@ public class JsonConverter {
             }
         }
     }
-
 }

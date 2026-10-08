@@ -1,10 +1,20 @@
 package com.nepbrain.technology.postjob.service;
+
+import com.nepbrain.technology.core.enums.StatusEnum;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
 import com.nepbrain.technology.postjob.payload.request.PostJobRequest;
-import com.nepbrain.technology.postjob.payload.response.PostJobResponse;
-import java.util.List; import java.util.UUID;
+
+import java.util.UUID;
+
 public interface PostJobService {
-    PostJobResponse savePostJob(PostJobRequest request);
-    List<PostJobResponse> getPostJob(UUID customerId);
-    PostJobResponse getPostJobDetail(UUID id);
-    void postJobDelete(UUID id);
+
+    GlobalResponse savePostJob(PostJobRequest request);
+
+    GlobalResponse getPostJob(UUID customerId);
+
+    GlobalResponse getPostJobDetail(UUID id);
+
+    GlobalResponse changePostJobStatus(UUID id, StatusEnum status);
+
+    GlobalResponse postJobDelete(UUID id);
 }

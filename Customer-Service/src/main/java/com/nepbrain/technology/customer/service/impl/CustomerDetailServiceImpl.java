@@ -1,6 +1,9 @@
 package com.nepbrain.technology.customer.service.impl;
 
+import com.nepbrain.technology.core.enums.StatusEnum;
 import com.nepbrain.technology.core.exception.GlobalException;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import com.nepbrain.technology.core.payload.response.GlobalResponseBuilder;
 import com.nepbrain.technology.customer.entity.CustomerDetailEntity;
 import com.nepbrain.technology.customer.entity.CustomerEntity;
 import com.nepbrain.technology.customer.enums.ErrorCodeEnum;
@@ -27,77 +30,85 @@ public class CustomerDetailServiceImpl implements CustomerDetailService {
     private final CustomerDetailMapper detailMapper;
 
     @Override
-    public CustomerDetailResponse create(CustomerDetailRequest request) {
-        // Validate customer exists
+    public GlobalResponse create(CustomerDetailRequest request) {
         CustomerEntity customer = customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.ERR002.name(), HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUS002.name()));
 
-        // Check if detail already exists
         if (detailRepository.existsByCustomerId(request.getCustomerId())) {
-            throw new GlobalException("CUSTOMER_DETAIL_EXISTS", HttpStatus.BAD_REQUEST);
+            throw new GlobalException(ErrorCodeEnum.CUSD002.name(), HttpStatus.CONFLICT);
         }
 
         CustomerDetailEntity entity = detailMapper.toEntity(request);
         entity.setCustomer(customer);
+        if (entity.getStatus() == null) {
+            entity.setStatus(StatusEnum.ACTIVE);
+        }
         CustomerDetailEntity saved = detailRepository.save(entity);
-        return detailMapper.toResponse(saved);
+        return GlobalResponseBuilder.buildSuccessResponse("message.customer.detail.create.success", detailMapper.toResponse(saved));
     }
 
     @Override
-    public CustomerDetailResponse update(UUID id, CustomerDetailRequest request) {
+    public GlobalResponse update(UUID id, CustomerDetailRequest request) {
         CustomerDetailEntity entity = detailRepository.findById(id)
-                .orElseThrow(() -> new GlobalException("CUSTOMER_DETAIL_NOT_FOUND", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUSD001.name()));
 
-        // Validate customer exists if changed
         if (!entity.getCustomer().getId().equals(request.getCustomerId())) {
             CustomerEntity customer = customerRepository.findById(request.getCustomerId())
-                    .orElseThrow(() -> new GlobalException(ErrorCodeEnum.ERR002.name(), HttpStatus.NOT_FOUND));
+                    .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUS002.name()));
             entity.setCustomer(customer);
         }
 
         detailMapper.updateEntity(request, entity);
         CustomerDetailEntity saved = detailRepository.save(entity);
-        return detailMapper.toResponse(saved);
+        return GlobalResponseBuilder.buildSuccessResponse("message.customer.detail.update.success", detailMapper.toResponse(saved));
     }
 
     @Override
-    public CustomerDetailResponse updateByCustomerId(UUID customerId, CustomerDetailRequest request) {
+    public GlobalResponse updateByCustomerId(UUID customerId, CustomerDetailRequest request) {
         CustomerDetailEntity entity = detailRepository.findByCustomerId(customerId)
-                .orElseThrow(() -> new GlobalException("CUSTOMER_DETAIL_NOT_FOUND", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUSD001.name()));
 
         detailMapper.updateEntity(request, entity);
         CustomerDetailEntity saved = detailRepository.save(entity);
-        return detailMapper.toResponse(saved);
+        return GlobalResponseBuilder.buildSuccessResponse("message.customer.detail.update.success", detailMapper.toResponse(saved));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public CustomerDetailResponse getById(UUID id) {
+    public GlobalResponse getById(UUID id) {
         CustomerDetailEntity entity = detailRepository.findById(id)
-                .orElseThrow(() -> new GlobalException("CUSTOMER_DETAIL_NOT_FOUND", HttpStatus.NOT_FOUND));
-        return detailMapper.toResponse(entity);
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUSD001.name()));
+        return GlobalResponseBuilder.buildSuccessResponse(detailMapper.toResponse(entity));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public CustomerDetailResponse getByCustomerId(UUID customerId) {
+    public GlobalResponse getByCustomerId(UUID customerId) {
         CustomerDetailEntity entity = detailRepository.findByCustomerId(customerId)
-                .orElseThrow(() -> new GlobalException("CUSTOMER_DETAIL_NOT_FOUND", HttpStatus.NOT_FOUND));
-        return detailMapper.toResponse(entity);
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUSD001.name()));
+        return GlobalResponseBuilder.buildSuccessResponse(detailMapper.toResponse(entity));
     }
 
     @Override
-    public void delete(UUID id) {
+    public GlobalResponse changeStatus(UUID id, StatusEnum status) {
+        if (status != StatusEnum.ACTIVE && status != StatusEnum.INACTIVE) {
+            throw new GlobalException(ErrorCodeEnum.CUSD003.name());
+        }
         CustomerDetailEntity entity = detailRepository.findById(id)
-                .orElseThrow(() -> new GlobalException("CUSTOMER_DETAIL_NOT_FOUND", HttpStatus.NOT_FOUND));
-        detailRepository.delete(entity);
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUSD001.name(), HttpStatus.BAD_REQUEST));
+        entity.setStatus(status);
+        return GlobalResponseBuilder.buildSuccessResponse("message.customer.detail.status.success", detailMapper.toResponse(detailRepository.save(entity)));
     }
 
     @Override
-    public void deleteByCustomerId(UUID customerId) {
+    public GlobalResponse changeStatusByCustomerId(UUID customerId, StatusEnum status) {
+        if (status != StatusEnum.ACTIVE && status != StatusEnum.INACTIVE) {
+            throw new GlobalException(ErrorCodeEnum.CUSD003.name());
+        }
         CustomerDetailEntity entity = detailRepository.findByCustomerId(customerId)
-                .orElseThrow(() -> new GlobalException("CUSTOMER_DETAIL_NOT_FOUND", HttpStatus.NOT_FOUND));
-        detailRepository.delete(entity);
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUSD001.name(), HttpStatus.BAD_REQUEST));
+        entity.setStatus(status);
+        return GlobalResponseBuilder.buildSuccessResponse("message.customer.detail.status.success", detailMapper.toResponse(detailRepository.save(entity)));
     }
 }
 

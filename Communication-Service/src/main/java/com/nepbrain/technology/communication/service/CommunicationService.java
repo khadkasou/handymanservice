@@ -8,7 +8,7 @@ import com.nepbrain.technology.core.exception.GlobalException;
 import com.nepbrain.technology.core.payload.response.GlobalResponse;
 
 public interface CommunicationService {
-    String send(CommunicationRequest request) throws GlobalException;
+    GlobalResponse send(CommunicationRequest request) throws GlobalException;
 
     /**
      * Send email/SMS/notification with explicit content (no topic template).

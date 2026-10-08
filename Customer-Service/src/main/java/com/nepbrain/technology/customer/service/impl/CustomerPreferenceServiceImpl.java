@@ -1,6 +1,9 @@
 package com.nepbrain.technology.customer.service.impl;
 
+import com.nepbrain.technology.core.enums.StatusEnum;
 import com.nepbrain.technology.core.exception.GlobalException;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import com.nepbrain.technology.core.payload.response.GlobalResponseBuilder;
 import com.nepbrain.technology.customer.entity.CustomerPreferenceEntity;
 import com.nepbrain.technology.customer.entity.CustomerEntity;
 import com.nepbrain.technology.customer.enums.ErrorCodeEnum;
@@ -15,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,131 +36,142 @@ public class CustomerPreferenceServiceImpl implements CustomerPreferenceService 
     private final CustomerPreferenceMapper preferenceMapper;
 
     @Override
-    public CustomerPreferenceResponse create(CustomerPreferenceRequest request) {
-        // Validate customer exists
+    public GlobalResponse create(CustomerPreferenceRequest request) {
         CustomerEntity customer = customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.ERR002.name(), HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUS002.name()));
 
-        // Check if preference already exists
         if (preferenceRepository.existsByCustomerIdAndPreferenceKey(request.getCustomerId(), request.getPreferenceKey())) {
-            throw new GlobalException("PREFERENCE_KEY_EXISTS", HttpStatus.BAD_REQUEST);
+            throw new GlobalException(ErrorCodeEnum.CUSP002.name(), HttpStatus.CONFLICT);
         }
 
         CustomerPreferenceEntity entity = preferenceMapper.toEntity(request);
         entity.setCustomer(customer);
+        if (entity.getStatus() == null) {
+            entity.setStatus(StatusEnum.ACTIVE);
+        }
         CustomerPreferenceEntity saved = preferenceRepository.save(entity);
-        return preferenceMapper.toResponse(saved);
+        return GlobalResponseBuilder.buildSuccessResponse("message.customer.preference.create.success", preferenceMapper.toResponse(saved));
     }
 
     @Override
-    public CustomerPreferenceResponse update(UUID id, CustomerPreferenceRequest request) {
+    public GlobalResponse update(UUID id, CustomerPreferenceRequest request) {
         CustomerPreferenceEntity entity = preferenceRepository.findById(id)
-                .orElseThrow(() -> new GlobalException("PREFERENCE_NOT_FOUND", HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUSP001.name()));
 
-        // Validate customer exists if changed
         if (!entity.getCustomer().getId().equals(request.getCustomerId())) {
             CustomerEntity customer = customerRepository.findById(request.getCustomerId())
-                    .orElseThrow(() -> new GlobalException(ErrorCodeEnum.ERR002.name(), HttpStatus.NOT_FOUND));
+                    .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUS002.name()));
             entity.setCustomer(customer);
         }
 
-        // Validate unique preference key (excluding current preference)
         if (!entity.getPreferenceKey().equals(request.getPreferenceKey()) &&
             preferenceRepository.existsByCustomerIdAndPreferenceKey(request.getCustomerId(), request.getPreferenceKey())) {
-            throw new GlobalException("PREFERENCE_KEY_EXISTS", HttpStatus.BAD_REQUEST);
+            throw new GlobalException(ErrorCodeEnum.CUSP002.name(), HttpStatus.CONFLICT);
         }
 
         preferenceMapper.updateEntity(request, entity);
         CustomerPreferenceEntity saved = preferenceRepository.save(entity);
-        return preferenceMapper.toResponse(saved);
+        return GlobalResponseBuilder.buildSuccessResponse("message.customer.preference.update.success", preferenceMapper.toResponse(saved));
     }
 
     @Override
-    public CustomerPreferenceResponse upsert(CustomerPreferenceRequest request) {
-        // Validate customer exists
+    public GlobalResponse upsert(CustomerPreferenceRequest request) {
         CustomerEntity customer = customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.ERR002.name(), HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUS002.name()));
 
-        // Try to find existing preference
         Optional<CustomerPreferenceEntity> existing = preferenceRepository.findByCustomerIdAndPreferenceKey(
                 request.getCustomerId(), request.getPreferenceKey());
 
         CustomerPreferenceEntity entity;
         if (existing.isPresent()) {
-            // Update existing
             entity = existing.get();
             preferenceMapper.updateEntity(request, entity);
         } else {
-            // Create new
             entity = preferenceMapper.toEntity(request);
             entity.setCustomer(customer);
+            entity.setStatus(StatusEnum.ACTIVE);
         }
 
         CustomerPreferenceEntity saved = preferenceRepository.save(entity);
-        return preferenceMapper.toResponse(saved);
+        return GlobalResponseBuilder.buildSuccessResponse("message.customer.preference.upsert.success", preferenceMapper.toResponse(saved));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public CustomerPreferenceResponse getById(UUID id) {
+    public GlobalResponse getById(UUID id) {
         CustomerPreferenceEntity entity = preferenceRepository.findById(id)
-                .orElseThrow(() -> new GlobalException("PREFERENCE_NOT_FOUND", HttpStatus.NOT_FOUND));
-        return preferenceMapper.toResponse(entity);
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUSP001.name()));
+        return GlobalResponseBuilder.buildSuccessResponse(preferenceMapper.toResponse(entity));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public CustomerPreferenceResponse getByCustomerIdAndPreferenceKey(UUID customerId, String preferenceKey) {
+    public GlobalResponse getByCustomerIdAndPreferenceKey(UUID customerId, String preferenceKey) {
         CustomerPreferenceEntity entity = preferenceRepository.findByCustomerIdAndPreferenceKey(customerId, preferenceKey)
-                .orElseThrow(() -> new GlobalException("PREFERENCE_NOT_FOUND", HttpStatus.NOT_FOUND));
-        return preferenceMapper.toResponse(entity);
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUSP001.name()));
+        return GlobalResponseBuilder.buildSuccessResponse(preferenceMapper.toResponse(entity));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<CustomerPreferenceResponse> getByCustomerId(UUID customerId) {
-        List<CustomerPreferenceEntity> entities = preferenceRepository.findByCustomerId(customerId);
-        return entities.stream()
+    public GlobalResponse getByCustomerId(UUID customerId) {
+        List<CustomerPreferenceResponse> preferences = preferenceRepository.findByCustomerId(customerId).stream()
                 .map(preferenceMapper::toResponse)
                 .collect(Collectors.toList());
+        return GlobalResponseBuilder.buildSuccessResponse(preferences);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<CustomerPreferenceResponse> getByCustomerIdAndCategory(UUID customerId, String category) {
-        List<CustomerPreferenceEntity> entities = preferenceRepository.findByCustomerIdAndCategory(customerId, category);
-        return entities.stream()
+    public GlobalResponse getByCustomerIdAndCategory(UUID customerId, String category) {
+        List<CustomerPreferenceResponse> preferences = preferenceRepository.findByCustomerIdAndCategory(customerId, category).stream()
                 .map(preferenceMapper::toResponse)
                 .collect(Collectors.toList());
+        return GlobalResponseBuilder.buildSuccessResponse(preferences);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Map<String, String> getPreferencesAsMap(UUID customerId) {
+    public GlobalResponse getPreferencesAsMap(UUID customerId) {
         List<CustomerPreferenceEntity> entities = preferenceRepository.findByCustomerId(customerId);
         Map<String, String> preferencesMap = new HashMap<>();
         entities.forEach(pref -> preferencesMap.put(pref.getPreferenceKey(), pref.getPreferenceValue()));
-        return preferencesMap;
+        return GlobalResponseBuilder.buildSuccessResponse(preferencesMap);
     }
 
     @Override
-    public void delete(UUID id) {
+    public GlobalResponse changeStatus(UUID id, StatusEnum status) {
+        requireActiveOrInactive(status);
         CustomerPreferenceEntity entity = preferenceRepository.findById(id)
-                .orElseThrow(() -> new GlobalException("PREFERENCE_NOT_FOUND", HttpStatus.NOT_FOUND));
-        preferenceRepository.delete(entity);
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUSP001.name(), HttpStatus.BAD_REQUEST));
+        entity.setStatus(status);
+        return GlobalResponseBuilder.buildSuccessResponse("message.customer.preference.status.success", preferenceMapper.toResponse(preferenceRepository.save(entity)));
     }
 
     @Override
-    public void deleteByCustomerIdAndPreferenceKey(UUID customerId, String preferenceKey) {
+    public GlobalResponse changeStatusByCustomerIdAndPreferenceKey(UUID customerId, String preferenceKey, StatusEnum status) {
+        requireActiveOrInactive(status);
         CustomerPreferenceEntity entity = preferenceRepository.findByCustomerIdAndPreferenceKey(customerId, preferenceKey)
-                .orElseThrow(() -> new GlobalException("PREFERENCE_NOT_FOUND", HttpStatus.NOT_FOUND));
-        preferenceRepository.delete(entity);
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUSP001.name(), HttpStatus.BAD_REQUEST));
+        entity.setStatus(status);
+        return GlobalResponseBuilder.buildSuccessResponse("message.customer.preference.status.success", preferenceMapper.toResponse(preferenceRepository.save(entity)));
     }
 
     @Override
-    public void deleteAllByCustomerId(UUID customerId) {
+    public GlobalResponse changeStatusByCustomerId(UUID customerId, StatusEnum status) {
+        requireActiveOrInactive(status);
         List<CustomerPreferenceEntity> entities = preferenceRepository.findByCustomerId(customerId);
-        preferenceRepository.deleteAll(entities);
+        List<CustomerPreferenceResponse> responses = new ArrayList<>();
+        for (CustomerPreferenceEntity entity : entities) {
+            entity.setStatus(status);
+            responses.add(preferenceMapper.toResponse(preferenceRepository.save(entity)));
+        }
+        return GlobalResponseBuilder.buildSuccessResponse("message.customer.preference.status.success", responses);
+    }
+
+    private void requireActiveOrInactive(StatusEnum status) {
+        if (status != StatusEnum.ACTIVE && status != StatusEnum.INACTIVE) {
+            throw new GlobalException(ErrorCodeEnum.CUSP003.name());
+        }
     }
 }
-

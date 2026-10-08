@@ -1,5 +1,11 @@
 package com.nepbrain.technology.provider.service;
 
+import com.nepbrain.technology.core.enums.ApiStatusEnum;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 import com.nepbrain.technology.auth.entity.UserEntity;
 import com.nepbrain.technology.auth.enums.UserTypeEnum;
 import com.nepbrain.technology.auth.payload.response.UserResponse;
@@ -27,45 +33,33 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
 @ExtendWith(MockitoExtension.class)
 class ProviderServiceImplTest {
 
-    @Mock
-    private UserRepository userRepository;
-    @Mock
-    private FavouriteProviderRepository favouriteProviderRepository;
-    @Mock
-    private HandymanRatingRepository handymanRatingRepository;
+    @Mock private UserRepository userRepository;
+    @Mock private FavouriteProviderRepository favouriteProviderRepository;
+    @Mock private HandymanRatingRepository handymanRatingRepository;
 
-    @Spy
-    private ModelMapper modelMapper = new ModelMapper();
+    @Spy private ModelMapper modelMapper = new ModelMapper();
 
-    @InjectMocks
-    private ProviderServiceImpl providerService;
+    @InjectMocks private ProviderServiceImpl providerService;
 
     @BeforeEach
     void stubSaves() {
-        lenient().when(favouriteProviderRepository.save(any(FavouriteProviderEntity.class)))
-                .thenAnswer(invocation -> {
-                    FavouriteProviderEntity entity = invocation.getArgument(0);
-                    if (entity.getId() == null) {
-                        entity.setId(UUID.randomUUID());
-                    }
-                    return entity;
-                });
-        lenient().when(handymanRatingRepository.save(any(HandymanRatingEntity.class)))
-                .thenAnswer(invocation -> {
-                    HandymanRatingEntity entity = invocation.getArgument(0);
-                    if (entity.getId() == null) {
-                        entity.setId(UUID.randomUUID());
-                    }
-                    return entity;
-                });
+        lenient().when(favouriteProviderRepository.save(any(FavouriteProviderEntity.class))).thenAnswer(invocation -> {
+                FavouriteProviderEntity entity = invocation.getArgument(0);
+                if (entity.getId() == null) {
+                entity.setId(UUID.randomUUID());
+        }
+                return entity;
+        });
+        lenient().when(handymanRatingRepository.save(any(HandymanRatingEntity.class))).thenAnswer(invocation -> {
+                HandymanRatingEntity entity = invocation.getArgument(0);
+                if (entity.getId() == null) {
+                entity.setId(UUID.randomUUID());
+        }
+                return entity;
+        });
     }
 
     @Test
@@ -80,8 +74,7 @@ class ProviderServiceImplTest {
         provider.setId(UUID.randomUUID());
         when(userRepository.findByUserType(UserTypeEnum.PROVIDER)).thenReturn(List.of(provider));
 
-        List<UserResponse> list = providerService.userList("provider");
-
+        List<UserResponse> list = (List<UserResponse>) providerService.userList("provider").getData();
         assertThat(list).hasSize(1);
         assertThat(list.getFirst().getUserType()).isEqualTo("provider");
         verify(userRepository).findByUserType(UserTypeEnum.PROVIDER);
@@ -100,8 +93,7 @@ class ProviderServiceImplTest {
         provider.setId(id);
         when(userRepository.findById(id)).thenReturn(Optional.of(provider));
 
-        UserResponse response = providerService.providerDetail(id);
-
+        UserResponse response = (UserResponse) providerService.providerDetail(id).getData();
         assertThat(response.getId()).isEqualTo(id);
         assertThat(response.getEmail()).isEqualTo("p@example.com");
         assertThat(response.getStatus()).isEqualTo("ACTIVE");
@@ -112,8 +104,7 @@ class ProviderServiceImplTest {
         UUID id = UUID.randomUUID();
         when(userRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> providerService.providerDetail(id))
-                .isInstanceOf(GlobalException.class)
+        assertThatThrownBy(() -> providerService.providerDetail(id)).isInstanceOf(GlobalException.class)
                 .hasMessage("Provider not found")
                 .extracting(ex -> ((GlobalException) ex).getCode())
                 .isEqualTo("PRV001");
@@ -123,13 +114,10 @@ class ProviderServiceImplTest {
     void saveFavouriteProvider_createsWhenMissing() {
         UUID userId = UUID.randomUUID();
         UUID providerId = UUID.randomUUID();
-        when(favouriteProviderRepository.findByUserIdAndProviderId(userId, providerId))
-                .thenReturn(Optional.empty());
+        when(favouriteProviderRepository.findByUserIdAndProviderId(userId, providerId)).thenReturn(Optional.empty());
 
-        providerService.saveFavouriteProvider(FavouriteProviderRequest.builder()
-                .userId(userId)
-                .providerId(providerId)
-                .build());
+        providerService.saveFavouriteProvider(
+                FavouriteProviderRequest.builder().userId(userId).providerId(providerId).build());
 
         verify(favouriteProviderRepository).save(any(FavouriteProviderEntity.class));
     }
@@ -138,43 +126,42 @@ class ProviderServiceImplTest {
     void saveFavouriteProvider_skipsWhenExists() {
         UUID userId = UUID.randomUUID();
         UUID providerId = UUID.randomUUID();
-        FavouriteProviderEntity existing = FavouriteProviderEntity.builder()
-                .userId(userId)
-                .providerId(providerId)
-                .build();
+        FavouriteProviderEntity existing =
+                FavouriteProviderEntity.builder().userId(userId).providerId(providerId).build();
         existing.setId(UUID.randomUUID());
         when(favouriteProviderRepository.findByUserIdAndProviderId(userId, providerId))
                 .thenReturn(Optional.of(existing));
 
-        providerService.saveFavouriteProvider(FavouriteProviderRequest.builder()
-                .userId(userId)
-                .providerId(providerId)
-                .build());
+        providerService.saveFavouriteProvider(
+                FavouriteProviderRequest.builder().userId(userId).providerId(providerId).build());
 
         verify(favouriteProviderRepository, never()).save(any());
     }
 
     @Test
-    void deleteFavouriteProvider_delegates() {
+    void deleteFavouriteProvider_marksInactive() {
         UUID userId = UUID.randomUUID();
         UUID providerId = UUID.randomUUID();
-
-        providerService.deleteFavouriteProvider(FavouriteProviderRequest.builder()
+        FavouriteProviderEntity existing = FavouriteProviderEntity.builder()
                 .userId(userId)
                 .providerId(providerId)
-                .build());
+                .status(StatusEnum.ACTIVE)
+                .build();
+        existing.setId(UUID.randomUUID());
+        when(favouriteProviderRepository.findByUserIdAndProviderId(userId, providerId)).thenReturn(Optional.of(existing));
 
-        verify(favouriteProviderRepository).deleteByUserIdAndProviderId(userId, providerId);
+        providerService.deleteFavouriteProvider(
+                FavouriteProviderRequest.builder().userId(userId).providerId(providerId).build());
+
+        assertThat(existing.getStatus()).isEqualTo(StatusEnum.INACTIVE);
+        verify(favouriteProviderRepository).save(existing);
     }
 
     @Test
     void userFavouriteProvider_resolvesProviders() {
         UUID userId = UUID.randomUUID();
         UUID providerId = UUID.randomUUID();
-        FavouriteProviderEntity fav = FavouriteProviderEntity.builder()
-                .userId(userId)
-                .providerId(providerId)
-                .build();
+        FavouriteProviderEntity fav = FavouriteProviderEntity.builder().userId(userId).providerId(providerId).build();
         fav.setId(UUID.randomUUID());
         UserEntity provider = UserEntity.builder()
                 .email("fav@example.com")
@@ -187,8 +174,7 @@ class ProviderServiceImplTest {
         when(favouriteProviderRepository.findByUserId(userId)).thenReturn(List.of(fav));
         when(userRepository.findById(providerId)).thenReturn(Optional.of(provider));
 
-        List<UserResponse> list = providerService.userFavouriteProvider(userId);
-
+        List<UserResponse> list = (List<UserResponse>) providerService.userFavouriteProvider(userId).getData();
         assertThat(list).hasSize(1);
         assertThat(list.getFirst().getEmail()).isEqualTo("fav@example.com");
     }
@@ -204,8 +190,7 @@ class ProviderServiceImplTest {
                 .review("Great work")
                 .build();
 
-        HandymanRatingResponse response = providerService.saveHandymanRating(request);
-
+        HandymanRatingResponse response = (HandymanRatingResponse) providerService.saveHandymanRating(request).getData();
         assertThat(response.getId()).isNotNull();
         assertThat(response.getHandymanId()).isEqualTo(handymanId);
         assertThat(response.getRating()).isEqualTo(4.5);
@@ -225,8 +210,7 @@ class ProviderServiceImplTest {
         rating.setId(UUID.randomUUID());
         when(handymanRatingRepository.findByHandymanId(handymanId)).thenReturn(List.of(rating));
 
-        List<HandymanRatingResponse> list = providerService.handymanReviews(handymanId);
-
+        List<HandymanRatingResponse> list = (List<HandymanRatingResponse>) providerService.handymanReviews(handymanId).getData();
         assertThat(list).hasSize(1);
         assertThat(list.getFirst().getReview()).isEqualTo("Excellent");
         verify(handymanRatingRepository).findByHandymanId(handymanId);
@@ -235,23 +219,26 @@ class ProviderServiceImplTest {
     @Test
     void deleteHandymanRating_success() {
         UUID id = UUID.randomUUID();
-        when(handymanRatingRepository.existsById(id)).thenReturn(true);
+        HandymanRatingEntity rating = HandymanRatingEntity.builder().status(StatusEnum.ACTIVE).build();
+        rating.setId(id);
+        when(handymanRatingRepository.findById(id)).thenReturn(Optional.of(rating));
+        when(handymanRatingRepository.save(any(HandymanRatingEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         providerService.deleteHandymanRating(id);
 
-        verify(handymanRatingRepository).deleteById(id);
+        assertThat(rating.getStatus()).isEqualTo(StatusEnum.INACTIVE);
+        verify(handymanRatingRepository).save(rating);
     }
 
     @Test
     void deleteHandymanRating_whenMissing_throwsPrv003() {
         UUID id = UUID.randomUUID();
-        when(handymanRatingRepository.existsById(id)).thenReturn(false);
+        when(handymanRatingRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> providerService.deleteHandymanRating(id))
-                .isInstanceOf(GlobalException.class)
+        assertThatThrownBy(() -> providerService.deleteHandymanRating(id)).isInstanceOf(GlobalException.class)
                 .hasMessage("Rating not found")
                 .extracting(ex -> ((GlobalException) ex).getCode())
                 .isEqualTo("PRV003");
-        verify(handymanRatingRepository, never()).deleteById(any());
+        verify(handymanRatingRepository, never()).save(any());
     }
 }

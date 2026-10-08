@@ -57,7 +57,7 @@ public class BucketController {
     public ResponseEntity<GlobalResponse> uploadMicroImage(@Valid @RequestBody BucketRequest bucketRequest, ServerHttpRequest request) throws GlobalException {
         log.info("Uploading file to bucket service");
         return ResponseEntity.ok()
-                .body(GlobalResponseBuilder.buildSuccessResponse("File uploaded successfully", bucketService.uploadImage(request, bucketRequest)));
+                .body(bucketService.uploadImage(request, bucketRequest));
     }
 
     @Operation(summary = "Upload bulk file to minio server")
@@ -66,7 +66,7 @@ public class BucketController {
     public ResponseEntity<GlobalResponse> uploadFileBulk(@Valid @RequestBody List<DocumentRequest> documentRequests, ServerHttpRequest request) throws GlobalException {
         log.info("Uploading bulk file to bucket service");
         return ResponseEntity.ok()
-                .body(GlobalResponseBuilder.buildSuccessResponse("Files uploaded successfully", bucketService.uploadFileInBulk(request, documentRequests)));
+                .body(GlobalResponseBuilder.buildSuccessResponse("message.bucket.bulk.success", bucketService.uploadFileInBulk(request, documentRequests)));
     }
 
     @Operation(summary = "Upload bulk file to minio server")
@@ -75,7 +75,7 @@ public class BucketController {
     public ResponseEntity<GlobalResponse> uploadMicroFileInBulk(@Valid @RequestBody List<DocumentRequest> documentRequests, ServerHttpRequest request) throws GlobalException {
         log.info("Uploading bulk file to bucket service from microservice");
         return ResponseEntity.ok()
-                .body(GlobalResponseBuilder.buildSuccessResponse("Files uploaded successfully", bucketService.uploadFileInBulk(request, documentRequests)));
+                .body(GlobalResponseBuilder.buildSuccessResponse("message.bucket.bulk.success", bucketService.uploadFileInBulk(request, documentRequests)));
     }
 
     @Operation(summary = "Upload file via multipart/form-data; returns URL (like base64 upload). Use for non-image documents.")
@@ -100,7 +100,7 @@ public class BucketController {
                     file.filename();
                     String fileName = file.filename();
                     String url = bucketService.uploadMultipartAndGetUrl(bytes, contentType, fileName, folderPath);
-                    return ResponseEntity.ok(GlobalResponseBuilder.buildSuccessResponse("File uploaded successfully", url));
+                    return ResponseEntity.ok(GlobalResponseBuilder.buildSuccessResponse("message.bucket.upload.success", url));
                 })
                 .onErrorResume(GlobalException.class, e -> Mono.just(ResponseEntity.badRequest()
                         .body(GlobalResponseBuilder.buildFailResponse(e))))
@@ -136,7 +136,7 @@ public class BucketController {
     public Mono<ResponseEntity<GlobalResponse>> getCurrentUserId() {
         return bucketService.getUserId()
                 .map(userId -> ResponseEntity.ok()
-                        .body(GlobalResponseBuilder.buildSuccessResponse("User ID retrieved successfully", userId)))
+                        .body(GlobalResponseBuilder.buildSuccessResponse("message.bucket.user.success", userId)))
                 .switchIfEmpty(Mono.just(ResponseEntity.ok()
                         .body(GlobalResponseBuilder.buildFailResponse(
                                 new GlobalException("AUTH002", "User ID not found in security context")))))

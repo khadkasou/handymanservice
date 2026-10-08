@@ -12,12 +12,15 @@ import com.nepbrain.technology.communication.repository.SettingDetailRepository;
 import com.nepbrain.technology.communication.repository.SettingRepository;
 import com.nepbrain.technology.communication.service.SettingService;
 import com.nepbrain.technology.core.exception.GlobalException;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import com.nepbrain.technology.core.payload.response.GlobalResponseBuilder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -36,9 +39,9 @@ public class SettingServiceImpl implements SettingService {
 
     @Override
     @Transactional
-    public void create(SettingRequest request) {
+    public GlobalResponse create(SettingRequest request) {
         if (settingRepository.findBySettingCode(request.getSettingCode()).isPresent()) {
-            throw new GlobalException(ErrorCodeEnum.MSG001.name());
+            throw new GlobalException(ErrorCodeEnum.MSG001.name(), HttpStatus.CONFLICT);
         }
         SettingEntity entity = SettingEntity.builder()
                 .settingCode(request.getSettingCode())
@@ -46,35 +49,37 @@ public class SettingServiceImpl implements SettingService {
                 .description(request.getDescription())
                 .build();
         settingRepository.save(entity);
+        return GlobalResponseBuilder.buildSuccessResponse("message.setting.create.success");
     }
 
     @Override
     @Transactional
-    public void update(UUID id, SettingRequest request) {
+    public GlobalResponse update(UUID id, SettingRequest request) {
         SettingEntity entity = settingRepository.findById(id)
                 .orElseThrow(() -> new GlobalException(ErrorCodeEnum.SET001.name()));
         entity.setName(request.getName());
         entity.setDescription(request.getDescription());
         if (!entity.getSettingCode().equals(request.getSettingCode())) {
             if (settingRepository.findBySettingCode(request.getSettingCode()).isPresent()) {
-                throw new GlobalException(ErrorCodeEnum.MSG001.name());
+                throw new GlobalException(ErrorCodeEnum.MSG001.name(), HttpStatus.CONFLICT);
             }
             entity.setSettingCode(request.getSettingCode());
         }
         settingRepository.save(entity);
+        return GlobalResponseBuilder.buildSuccessResponse("message.setting.update.success");
     }
 
     @Override
     @Transactional(readOnly = true)
-    public SettingResponse getById(UUID id) {
+    public GlobalResponse getById(UUID id) {
         SettingEntity entity = settingRepository.findById(id)
                 .orElseThrow(() -> new GlobalException(ErrorCodeEnum.SET001.name()));
-        return toResponse(entity);
+        return GlobalResponseBuilder.buildSuccessResponse(toResponse(entity));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public DatapaginationResponse list(SettingListRequest request) {
+    public GlobalResponse list(SettingListRequest request) {
         Specification<SettingEntity> spec = (root, query, cb) -> {
             if (!StringUtils.hasText(request.getSearchKey())) {
                 return cb.conjunction();
@@ -91,15 +96,15 @@ public class SettingServiceImpl implements SettingService {
         Pageable pageable = PageRequest.of(pageNo, pageSize, Sort.by(Sort.Direction.fromString(dir), sortBy));
         Page<SettingEntity> page = settingRepository.findAll(spec, pageable);
         List<SettingResponse> result = page.getContent().stream().map(this::toResponse).toList();
-        return DatapaginationResponse.builder()
+        return GlobalResponseBuilder.buildSuccessResponse(DatapaginationResponse.builder()
                 .totalElementCount(page.getTotalElements())
                 .result(result)
-                .build();
+                .build());
     }
 
     @Override
     @Transactional
-    public void delete(UUID id) {
+    public GlobalResponse delete(UUID id) {
         SettingEntity entity = settingRepository.findById(id)
                 .orElseThrow(() -> new GlobalException(ErrorCodeEnum.SET001.name()));
         List<SettingCategoryEntity> categories = settingCategoryRepository.findAllBySetting(entity);
@@ -108,6 +113,7 @@ public class SettingServiceImpl implements SettingService {
             settingCategoryRepository.delete(category);
         }
         settingRepository.delete(entity);
+        return GlobalResponseBuilder.buildSuccessResponse("message.setting.delete.success");
     }
 
     private SettingResponse toResponse(SettingEntity entity) {

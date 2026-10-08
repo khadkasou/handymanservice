@@ -1,5 +1,11 @@
 package com.nepbrain.technology.helpdesk.service;
 
+import com.nepbrain.technology.core.enums.ApiStatusEnum;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 import com.nepbrain.technology.core.exception.GlobalException;
 import com.nepbrain.technology.helpdesk.entity.HelpdeskActivityEntity;
 import com.nepbrain.technology.helpdesk.entity.HelpdeskTicketEntity;
@@ -25,22 +31,15 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
 @ExtendWith(MockitoExtension.class)
 class HelpdeskServiceImplTest {
 
     @Mock private HelpdeskTicketRepository ticketRepository;
     @Mock private HelpdeskActivityRepository activityRepository;
 
-    @Spy
-    private ModelMapper modelMapper = configuredMapper();
+    @Spy private ModelMapper modelMapper = configuredMapper();
 
-    @InjectMocks
-    private HelpdeskServiceImpl helpdeskService;
+    @InjectMocks private HelpdeskServiceImpl helpdeskService;
 
     private UUID customerId;
     private UUID ticketId;
@@ -53,9 +52,7 @@ class HelpdeskServiceImplTest {
 
     private static ModelMapper configuredMapper() {
         ModelMapper mapper = new ModelMapper();
-        mapper.getConfiguration()
-                .setFieldMatchingEnabled(true)
-                .setFieldAccessLevel(AccessLevel.PRIVATE)
+        mapper.getConfiguration().setFieldMatchingEnabled(true).setFieldAccessLevel(AccessLevel.PRIVATE)
                 .setMatchingStrategy(MatchingStrategies.STRICT)
                 .setSkipNullEnabled(true);
         return mapper;
@@ -71,13 +68,14 @@ class HelpdeskServiceImplTest {
                 .type("support")
                 .build();
         when(ticketRepository.save(any(HelpdeskTicketEntity.class))).thenAnswer(invocation -> {
-            HelpdeskTicketEntity e = invocation.getArgument(0);
-            if (e.getId() == null) e.setId(UUID.randomUUID());
-            return e;
+                HelpdeskTicketEntity e = invocation.getArgument(0);
+                if (e.getId() == null) {
+                e.setId(UUID.randomUUID());
+        }
+                return e;
         });
 
-        HelpdeskTicketResponse response = helpdeskService.helpdeskSave(request);
-
+        HelpdeskTicketResponse response = (HelpdeskTicketResponse) helpdeskService.helpdeskSave(request).getData();
         assertThat(response.getId()).isNotNull();
         assertThat(response.getSubject()).isEqualTo("Need help");
         assertThat(response.getStatus()).isEqualTo("open");
@@ -94,8 +92,7 @@ class HelpdeskServiceImplTest {
         ticket.setId(ticketId);
         when(ticketRepository.findByStatus("open")).thenReturn(List.of(ticket));
 
-        List<HelpdeskTicketResponse> result = helpdeskService.helpdeskList("open", null);
-
+        List<HelpdeskTicketResponse> result = (List<HelpdeskTicketResponse>) helpdeskService.helpdeskList("open", null).getData();
         assertThat(result).hasSize(1);
         verify(ticketRepository).findByStatus("open");
         verify(ticketRepository, never()).findByCustomerId(any());
@@ -111,8 +108,7 @@ class HelpdeskServiceImplTest {
         ticket.setId(ticketId);
         when(ticketRepository.findByCustomerId(customerId)).thenReturn(List.of(ticket));
 
-        List<HelpdeskTicketResponse> result = helpdeskService.helpdeskList(null, customerId);
-
+        List<HelpdeskTicketResponse> result = (List<HelpdeskTicketResponse>) helpdeskService.helpdeskList(null, customerId).getData();
         assertThat(result).hasSize(1);
         verify(ticketRepository).findByCustomerId(customerId);
     }
@@ -121,8 +117,7 @@ class HelpdeskServiceImplTest {
     void helpdeskList_all() {
         when(ticketRepository.findAll()).thenReturn(List.of());
 
-        List<HelpdeskTicketResponse> result = helpdeskService.helpdeskList("  ", null);
-
+        List<HelpdeskTicketResponse> result = (List<HelpdeskTicketResponse>) helpdeskService.helpdeskList("  ", null).getData();
         assertThat(result).isEmpty();
         verify(ticketRepository).findAll();
     }
@@ -147,8 +142,7 @@ class HelpdeskServiceImplTest {
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
         when(activityRepository.findByHelpdeskId(ticketId)).thenReturn(List.of(activity));
 
-        HelpdeskTicketResponse response = helpdeskService.helpdeskDetail(ticketId);
-
+        HelpdeskTicketResponse response = (HelpdeskTicketResponse) helpdeskService.helpdeskDetail(ticketId).getData();
         assertThat(response.getId()).isEqualTo(ticketId);
         assertThat(response.getActivities()).hasSize(1);
         assertThat(response.getActivities().getFirst().getMessages()).isEqualTo("Hello");
@@ -159,8 +153,7 @@ class HelpdeskServiceImplTest {
     void helpdeskDetail_notFound_throwsGlobalException() {
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> helpdeskService.helpdeskDetail(ticketId))
-                .isInstanceOf(GlobalException.class)
+        assertThatThrownBy(() -> helpdeskService.helpdeskDetail(ticketId)).isInstanceOf(GlobalException.class)
                 .extracting(ex -> ((GlobalException) ex).getCode())
                 .isEqualTo("HLP001");
     }
@@ -175,9 +168,11 @@ class HelpdeskServiceImplTest {
         ticket.setId(ticketId);
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticket));
         when(activityRepository.save(any(HelpdeskActivityEntity.class))).thenAnswer(invocation -> {
-            HelpdeskActivityEntity e = invocation.getArgument(0);
-            if (e.getId() == null) e.setId(UUID.randomUUID());
-            return e;
+                HelpdeskActivityEntity e = invocation.getArgument(0);
+                if (e.getId() == null) {
+                e.setId(UUID.randomUUID());
+        }
+                return e;
         });
 
         HelpdeskActivityRequest request = HelpdeskActivityRequest.builder()
@@ -186,8 +181,7 @@ class HelpdeskServiceImplTest {
                 .senderType("admin")
                 .build();
 
-        HelpdeskActivityResponse response = helpdeskService.helpdeskActivitySave(ticketId, request);
-
+        HelpdeskActivityResponse response = (HelpdeskActivityResponse) helpdeskService.helpdeskActivitySave(ticketId, request).getData();
         assertThat(response.getId()).isNotNull();
         assertThat(response.getMessages()).isEqualTo("Follow up");
         assertThat(response.getActivityType()).isEqualTo("message");
@@ -226,8 +220,7 @@ class HelpdeskServiceImplTest {
     void helpdeskClosed_notFound_throwsGlobalException() {
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> helpdeskService.helpdeskClosed(ticketId))
-                .isInstanceOf(GlobalException.class)
+        assertThatThrownBy(() -> helpdeskService.helpdeskClosed(ticketId)).isInstanceOf(GlobalException.class)
                 .extracting(ex -> ((GlobalException) ex).getCode())
                 .isEqualTo("HLP001");
     }

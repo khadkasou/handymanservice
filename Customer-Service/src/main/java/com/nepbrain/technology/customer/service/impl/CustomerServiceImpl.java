@@ -1,7 +1,10 @@
 package com.nepbrain.technology.customer.service.impl;
 
+import com.nepbrain.technology.core.enums.StatusEnum;
 import com.nepbrain.technology.core.exception.GlobalException;
 import com.nepbrain.technology.core.payload.PaginationRequest;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import com.nepbrain.technology.core.payload.response.GlobalResponseBuilder;
 import com.nepbrain.technology.core.payload.response.PaginationResponse;
 import com.nepbrain.technology.core.util.PaginationHelper;
 import com.nepbrain.technology.customer.entity.CustomerEntity;
@@ -30,71 +33,68 @@ public class CustomerServiceImpl implements CustomerService {
     private final CustomerMapper customerMapper;
 
     @Override
-    public CustomerResponse create(CustomerRequest request) {
-        // Validate unique customer code
+    public GlobalResponse create(CustomerRequest request) {
         if (customerRepository.existsByCustomerCode(request.getCustomerCode())) {
-            throw new GlobalException(ErrorCodeEnum.ERR001.name(), HttpStatus.BAD_REQUEST);
+            throw new GlobalException(ErrorCodeEnum.CUS001.name(), HttpStatus.CONFLICT);
         }
-
-        // Validate unique email
         if (customerRepository.existsByEmail(request.getEmail())) {
-            throw new GlobalException(ErrorCodeEnum.ERR001.name(), HttpStatus.BAD_REQUEST);
+            throw new GlobalException(ErrorCodeEnum.CUS003.name(), HttpStatus.CONFLICT);
         }
 
         CustomerEntity entity = customerMapper.toEntity(request);
+        if (entity.getStatus() == null) {
+            entity.setStatus(StatusEnum.ACTIVE);
+        }
         CustomerEntity saved = customerRepository.save(entity);
-        return customerMapper.toResponse(saved);
+        return GlobalResponseBuilder.buildSuccessResponse("message.customer.create.success", customerMapper.toResponse(saved));
     }
 
     @Override
-    public CustomerResponse update(UUID id, CustomerRequest request) {
+    public GlobalResponse update(UUID id, CustomerRequest request) {
         CustomerEntity entity = customerRepository.findById(id)
-                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.ERR002.name(), HttpStatus.NOT_FOUND));
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUS002.name()));
 
-        // Validate unique customer code (excluding current customer)
-        if (!entity.getCustomerCode().equals(request.getCustomerCode()) && 
+        if (!entity.getCustomerCode().equals(request.getCustomerCode()) &&
             customerRepository.existsByCustomerCode(request.getCustomerCode())) {
-            throw new GlobalException(ErrorCodeEnum.ERR001.name(), HttpStatus.BAD_REQUEST);
+            throw new GlobalException(ErrorCodeEnum.CUS001.name(), HttpStatus.CONFLICT);
         }
-
-        // Validate unique email (excluding current customer)
-        if (!entity.getEmail().equals(request.getEmail()) && 
+        if (!entity.getEmail().equals(request.getEmail()) &&
             customerRepository.existsByEmail(request.getEmail())) {
-            throw new GlobalException(ErrorCodeEnum.ERR001.name(), HttpStatus.BAD_REQUEST);
+            throw new GlobalException(ErrorCodeEnum.CUS003.name(), HttpStatus.CONFLICT);
         }
 
         customerMapper.updateEntity(request, entity);
         CustomerEntity saved = customerRepository.save(entity);
-        return customerMapper.toResponse(saved);
+        return GlobalResponseBuilder.buildSuccessResponse("message.customer.update.success", customerMapper.toResponse(saved));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public CustomerResponse getById(UUID id) {
+    public GlobalResponse getById(UUID id) {
         CustomerEntity entity = customerRepository.findById(id)
-                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.ERR002.name(), HttpStatus.NOT_FOUND));
-        return customerMapper.toResponse(entity);
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUS002.name()));
+        return GlobalResponseBuilder.buildSuccessResponse(customerMapper.toResponse(entity));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public CustomerResponse getByCustomerCode(String customerCode) {
+    public GlobalResponse getByCustomerCode(String customerCode) {
         CustomerEntity entity = customerRepository.findByCustomerCode(customerCode)
-                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.ERR002.name(), HttpStatus.NOT_FOUND));
-        return customerMapper.toResponse(entity);
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUS002.name()));
+        return GlobalResponseBuilder.buildSuccessResponse(customerMapper.toResponse(entity));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public CustomerResponse getByEmail(String email) {
+    public GlobalResponse getByEmail(String email) {
         CustomerEntity entity = customerRepository.findByEmail(email)
-                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.ERR002.name(), HttpStatus.NOT_FOUND));
-        return customerMapper.toResponse(entity);
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUS002.name()));
+        return GlobalResponseBuilder.buildSuccessResponse(customerMapper.toResponse(entity));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PaginationResponse getAll(PaginationRequest paginationRequest) {
+    public GlobalResponse getAll(PaginationRequest paginationRequest) {
         Pageable pageable = PaginationHelper.getPageable(paginationRequest);
         Page<CustomerEntity> page = customerRepository.findAll(pageable);
 
@@ -103,14 +103,18 @@ public class CustomerServiceImpl implements CustomerService {
         response.setResult(page.getContent().stream()
                 .map(customerMapper::toResponse)
                 .collect(Collectors.toList()));
-        return response;
+        return GlobalResponseBuilder.buildSuccessResponse(response);
     }
 
     @Override
-    public void delete(UUID id) {
+    public GlobalResponse changeStatus(UUID id, StatusEnum status) {
+        if (status != StatusEnum.ACTIVE && status != StatusEnum.INACTIVE) {
+            throw new GlobalException(ErrorCodeEnum.CUS004.name());
+        }
         CustomerEntity entity = customerRepository.findById(id)
-                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.ERR002.name(), HttpStatus.NOT_FOUND));
-        customerRepository.delete(entity);
+                .orElseThrow(() -> new GlobalException(ErrorCodeEnum.CUS002.name(), HttpStatus.BAD_REQUEST));
+        entity.setStatus(status);
+        return GlobalResponseBuilder.buildSuccessResponse("message.customer.status.success", customerMapper.toResponse(customerRepository.save(entity)));
     }
 }
 

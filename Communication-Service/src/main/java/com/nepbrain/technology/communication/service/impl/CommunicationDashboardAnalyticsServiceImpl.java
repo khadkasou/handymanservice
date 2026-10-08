@@ -8,6 +8,8 @@ import com.nepbrain.technology.communication.payload.response.CommunicationDashb
 import com.nepbrain.technology.communication.repository.MessageRepository;
 import com.nepbrain.technology.communication.repository.SupportEmailRepository;
 import com.nepbrain.technology.communication.service.CommunicationDashboardAnalyticsService;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import com.nepbrain.technology.core.payload.response.GlobalResponseBuilder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -32,10 +34,10 @@ public class CommunicationDashboardAnalyticsServiceImpl implements Communication
     private final MessageRepository messageRepository;
 
     @Override
-    public CommunicationDashboardAnalyticsResponse getAnalytics() {
+    public GlobalResponse getAnalytics() {
         LocalDateTime monthStart = YearMonth.now().atDay(1).atStartOfDay();
 
-        return CommunicationDashboardAnalyticsResponse.builder()
+        CommunicationDashboardAnalyticsResponse analytics = CommunicationDashboardAnalyticsResponse.builder()
                 .supportMessages(CommunicationDashboardAnalyticsResponse.MetricSummary.builder()
                         .total(supportEmailRepository.count())
                         .thisMonth(supportEmailRepository.countByCreatedAtGreaterThanEqual(monthStart))
@@ -53,6 +55,7 @@ public class CommunicationDashboardAnalyticsServiceImpl implements Communication
                 .recentSupportMessages(mapRecentSupport())
                 .recentNotices(mapRecentNotices())
                 .build();
+        return GlobalResponseBuilder.buildSuccessResponse(analytics);
     }
 
     private List<CommunicationDashboardAnalyticsResponse.MonthlyCountPoint> buildSupportTrend() {

@@ -13,10 +13,10 @@ import org.springframework.web.server.ServerWebExchange;
 @Aspect
 @Component
 public class LoggingAspect {
+
     private static final Logger log = LoggerFactory.getLogger(LoggingAspect.class);
 
-
-    @Before("execution(* com.nepbrain.technology.hrmsuite.employee.service.*.*(..)) && args(exchange,..)")
+    @Before("execution(* com.nepbrain.technology.hrmsuite.employee.service.*.*(..)) &&" + " args(exchange,..)")
     public void logBeforeMethod(JoinPoint joinPoint, ServerWebExchange exchange) {
         log.info("Method Called: {}", joinPoint.getSignature().getName());
     }

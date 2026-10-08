@@ -10,6 +10,7 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface CustomerAddressMapper {
     @Mapping(target = "customer", ignore = true)
+    @Mapping(target = "status", ignore = true)
     CustomerAddressEntity toEntity(CustomerAddressRequest request);
     
     @Mapping(target = "customerId", source = "customer.id")
@@ -18,6 +19,7 @@ public interface CustomerAddressMapper {
     CustomerAddressResponse toResponse(CustomerAddressEntity entity);
     
     @Mapping(target = "customer", ignore = true)
+    @Mapping(target = "status", ignore = true)
     void updateEntity(CustomerAddressRequest request, @MappingTarget CustomerAddressEntity entity);
 }
 

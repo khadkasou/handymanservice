@@ -25,8 +25,19 @@ public class ServiceResponseBuilder {
     public static ServiceResponse buildSuccess(String message) {
         ServiceResponse response = new ServiceResponse();
         response.setSuccess(true);
-        response.setMessage(message);
+        response.setMessage(resolveSuccessMessage(message));
         return response;
+    }
+
+    private static String resolveSuccessMessage(String key) {
+        if (key == null || key.isBlank()) {
+            return key;
+        }
+        String resolved = MessageBundle.getMessage(key, "message.properties");
+        if (resolved == null || resolved.isBlank()) {
+            return key;
+        }
+        return resolved;
     }
 
     public static ServiceResponse buildSuccess(String message, Object data) {

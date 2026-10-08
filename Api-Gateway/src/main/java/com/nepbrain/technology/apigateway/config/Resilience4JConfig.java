@@ -26,4 +26,5 @@ public class Resilience4JConfig {
                 .timeLimiterConfig(TimeLimiterConfig.custom().timeoutDuration(Duration.ofSeconds(2)).build())
                 .circuitBreakerConfig(CircuitBreakerConfig.ofDefaults()), "slow", "slowflux");
     }
+
 }

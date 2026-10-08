@@ -55,7 +55,7 @@ public class JsonConverter {
             try {
                 headersJson.put(key, value);
             } catch (JSONException e) {
-                throw new GlobalException("ERR001", e);
+                throw new GlobalException(ErrorCodeEnum.ERR001.name(), e);
             }
         }
     }

@@ -12,12 +12,15 @@ import com.nepbrain.technology.communication.repository.SettingDetailRepository;
 import com.nepbrain.technology.communication.repository.SettingRepository;
 import com.nepbrain.technology.communication.service.SettingCategoryService;
 import com.nepbrain.technology.core.exception.GlobalException;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import com.nepbrain.technology.core.payload.response.GlobalResponseBuilder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -37,11 +40,11 @@ public class SettingCategoryServiceImpl implements SettingCategoryService {
 
     @Override
     @Transactional
-    public void create(SettingCategoryRequest request) {
+    public GlobalResponse create(SettingCategoryRequest request) {
         SettingEntity setting = settingRepository.findById(request.getSettingId())
                 .orElseThrow(() -> new GlobalException(ErrorCodeEnum.SET001.name()));
         if (settingCategoryRepository.findBySettingAndCategoryCode(setting, request.getCategoryCode()).isPresent()) {
-            throw new GlobalException(ErrorCodeEnum.MSG001.name());
+            throw new GlobalException(ErrorCodeEnum.MSG001.name(), HttpStatus.CONFLICT);
         }
         SettingCategoryEntity entity = SettingCategoryEntity.builder()
                 .categoryCode(request.getCategoryCode())
@@ -50,37 +53,39 @@ public class SettingCategoryServiceImpl implements SettingCategoryService {
                 .setting(setting)
                 .build();
         settingCategoryRepository.save(entity);
+        return GlobalResponseBuilder.buildSuccessResponse("message.setting.category.create.success");
     }
 
     @Override
     @Transactional
-    public void update(UUID id, SettingCategoryRequest request) {
+    public GlobalResponse update(UUID id, SettingCategoryRequest request) {
         SettingCategoryEntity entity = settingCategoryRepository.findById(id)
                 .orElseThrow(() -> new GlobalException(ErrorCodeEnum.SET002.name()));
         SettingEntity setting = settingRepository.findById(request.getSettingId())
                 .orElseThrow(() -> new GlobalException(ErrorCodeEnum.SET001.name()));
         if (!entity.getCategoryCode().equals(request.getCategoryCode())
                 && settingCategoryRepository.findBySettingAndCategoryCode(setting, request.getCategoryCode()).isPresent()) {
-            throw new GlobalException(ErrorCodeEnum.MSG001.name());
+            throw new GlobalException(ErrorCodeEnum.MSG001.name(), HttpStatus.CONFLICT);
         }
         entity.setCategoryCode(request.getCategoryCode());
         entity.setName(request.getName());
         entity.setDescription(request.getDescription());
         entity.setSetting(setting);
         settingCategoryRepository.save(entity);
+        return GlobalResponseBuilder.buildSuccessResponse("message.setting.category.update.success");
     }
 
     @Override
     @Transactional(readOnly = true)
-    public SettingCategoryResponse getById(UUID id) {
+    public GlobalResponse getById(UUID id) {
         SettingCategoryEntity entity = settingCategoryRepository.findById(id)
                 .orElseThrow(() -> new GlobalException(ErrorCodeEnum.SET002.name()));
-        return toResponse(entity);
+        return GlobalResponseBuilder.buildSuccessResponse(toResponse(entity));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public DatapaginationResponse list(SettingCategoryListRequest request) {
+    public GlobalResponse list(SettingCategoryListRequest request) {
         Specification<SettingCategoryEntity> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (request.getSettingId() != null) {
@@ -101,19 +106,20 @@ public class SettingCategoryServiceImpl implements SettingCategoryService {
         Pageable pageable = PageRequest.of(pageNo, pageSize, Sort.by(Sort.Direction.fromString(dir), sortBy));
         Page<SettingCategoryEntity> page = settingCategoryRepository.findAll(spec, pageable);
         List<SettingCategoryResponse> result = page.getContent().stream().map(this::toResponse).toList();
-        return DatapaginationResponse.builder()
+        return GlobalResponseBuilder.buildSuccessResponse(DatapaginationResponse.builder()
                 .totalElementCount(page.getTotalElements())
                 .result(result)
-                .build();
+                .build());
     }
 
     @Override
     @Transactional
-    public void delete(UUID id) {
+    public GlobalResponse delete(UUID id) {
         SettingCategoryEntity entity = settingCategoryRepository.findById(id)
                 .orElseThrow(() -> new GlobalException(ErrorCodeEnum.SET002.name()));
         settingDetailRepository.findAllBySettingCategory(entity).forEach(settingDetailRepository::delete);
         settingCategoryRepository.delete(entity);
+        return GlobalResponseBuilder.buildSuccessResponse("message.setting.category.delete.success");
     }
 
     private SettingCategoryResponse toResponse(SettingCategoryEntity entity) {

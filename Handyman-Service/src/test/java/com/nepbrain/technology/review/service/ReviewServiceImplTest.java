@@ -1,6 +1,13 @@
 package com.nepbrain.technology.review.service;
 
+import com.nepbrain.technology.core.enums.ApiStatusEnum;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 import com.nepbrain.technology.core.exception.GlobalException;
+import com.nepbrain.technology.core.enums.StatusEnum;
 import com.nepbrain.technology.review.entity.BookingRatingEntity;
 import com.nepbrain.technology.review.payload.request.BookingRatingRequest;
 import com.nepbrain.technology.review.payload.response.BookingRatingResponse;
@@ -18,23 +25,17 @@ import org.modelmapper.config.Configuration.AccessLevel;
 import org.modelmapper.convention.MatchingStrategies;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ReviewServiceImplTest {
 
     @Mock private BookingRatingRepository bookingRatingRepository;
 
-    @Spy
-    private ModelMapper modelMapper = configuredMapper();
+    @Spy private ModelMapper modelMapper = configuredMapper();
 
-    @InjectMocks
-    private ReviewServiceImpl reviewService;
+    @InjectMocks private ReviewServiceImpl reviewService;
 
     private UUID serviceId;
     private UUID customerId;
@@ -47,9 +48,7 @@ class ReviewServiceImplTest {
 
     private static ModelMapper configuredMapper() {
         ModelMapper mapper = new ModelMapper();
-        mapper.getConfiguration()
-                .setFieldMatchingEnabled(true)
-                .setFieldAccessLevel(AccessLevel.PRIVATE)
+        mapper.getConfiguration().setFieldMatchingEnabled(true).setFieldAccessLevel(AccessLevel.PRIVATE)
                 .setMatchingStrategy(MatchingStrategies.STRICT)
                 .setSkipNullEnabled(true);
         return mapper;
@@ -66,13 +65,14 @@ class ReviewServiceImplTest {
                 .review("Great work")
                 .build();
         when(bookingRatingRepository.save(any(BookingRatingEntity.class))).thenAnswer(invocation -> {
-            BookingRatingEntity e = invocation.getArgument(0);
-            if (e.getId() == null) e.setId(UUID.randomUUID());
-            return e;
+                BookingRatingEntity e = invocation.getArgument(0);
+                if (e.getId() == null) {
+                e.setId(UUID.randomUUID());
+        }
+                return e;
         });
 
-        BookingRatingResponse response = reviewService.saveBookingRating(request);
-
+        BookingRatingResponse response = (BookingRatingResponse) reviewService.saveBookingRating(request).getData();
         assertThat(response.getId()).isNotNull();
         assertThat(response.getRating()).isEqualTo(4.5);
         assertThat(response.getReview()).isEqualTo("Great work");
@@ -90,8 +90,7 @@ class ReviewServiceImplTest {
         entity.setId(UUID.randomUUID());
         when(bookingRatingRepository.findByServiceId(serviceId)).thenReturn(List.of(entity));
 
-        List<BookingRatingResponse> result = reviewService.serviceReviews(serviceId);
-
+        List<BookingRatingResponse> result = (List<BookingRatingResponse>) reviewService.serviceReviews(serviceId).getData();
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().getServiceId()).isEqualTo(serviceId);
         verify(bookingRatingRepository).findByServiceId(serviceId);
@@ -107,8 +106,7 @@ class ReviewServiceImplTest {
         entity.setId(UUID.randomUUID());
         when(bookingRatingRepository.findByCustomerId(customerId)).thenReturn(List.of(entity));
 
-        List<BookingRatingResponse> result = reviewService.getUserRatings(customerId);
-
+        List<BookingRatingResponse> result = (List<BookingRatingResponse>) reviewService.getUserRatings(customerId).getData();
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().getCustomerId()).isEqualTo(customerId);
         verify(bookingRatingRepository).findByCustomerId(customerId);
@@ -117,22 +115,25 @@ class ReviewServiceImplTest {
     @Test
     void deleteBookingRating_success() {
         UUID id = UUID.randomUUID();
-        when(bookingRatingRepository.existsById(id)).thenReturn(true);
+        BookingRatingEntity entity = BookingRatingEntity.builder().status(StatusEnum.ACTIVE).build();
+        entity.setId(id);
+        when(bookingRatingRepository.findById(id)).thenReturn(Optional.of(entity));
+        when(bookingRatingRepository.save(any(BookingRatingEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         reviewService.deleteBookingRating(id);
 
-        verify(bookingRatingRepository).deleteById(id);
+        assertThat(entity.getStatus()).isEqualTo(StatusEnum.INACTIVE);
+        verify(bookingRatingRepository).save(entity);
     }
 
     @Test
     void deleteBookingRating_notFound_throwsGlobalException() {
         UUID id = UUID.randomUUID();
-        when(bookingRatingRepository.existsById(id)).thenReturn(false);
+        when(bookingRatingRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> reviewService.deleteBookingRating(id))
-                .isInstanceOf(GlobalException.class)
+        assertThatThrownBy(() -> reviewService.deleteBookingRating(id)).isInstanceOf(GlobalException.class)
                 .extracting(ex -> ((GlobalException) ex).getCode())
                 .isEqualTo("REV001");
-        verify(bookingRatingRepository, never()).deleteById(any());
+        verify(bookingRatingRepository, never()).save(any());
     }
 }

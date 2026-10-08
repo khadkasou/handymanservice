@@ -9,9 +9,7 @@ import java.util.UUID;
 
 public class CurrentUser {
 
-    /**
-     * Get user ID as UUID (for backward compatibility)
-     */
+    /** Get user ID as UUID (for backward compatibility) */
     public static UUID getUser() {
         String userId = getUserIdAsString();
         if (userId != null) {
@@ -25,10 +23,7 @@ public class CurrentUser {
         return null;
     }
 
-    /**
-     * Get user ID as String from opaque token
-     * This method works with OAuth2 opaque tokens
-     */
+    /** Get user ID as String from opaque token This method works with OAuth2 opaque tokens */
     public static String getUserIdAsString() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || auth.getName().equalsIgnoreCase("anonymousUser")) {
@@ -40,12 +35,12 @@ public class CurrentUser {
             OAuth2AuthenticatedPrincipal principal = (OAuth2AuthenticatedPrincipal) auth.getPrincipal();
             // The user ID is set as the principal's name by CustomOpaqueTokenIntrospector
             String userId = principal.getName();
-            
+
             // Alternative: Get from attributes if name is not set
             if (userId == null || userId.isEmpty()) {
                 userId = (String) principal.getAttribute(OAuth2TokenIntrospectionClaimNames.USERNAME);
             }
-            
+
             return userId;
         }
 

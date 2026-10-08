@@ -1,8 +1,8 @@
 package com.nepbrain.technology.communication.service;
 
-import com.nepbrain.technology.communication.payload.response.CommunicationDashboardAnalyticsResponse;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
 
 public interface CommunicationDashboardAnalyticsService {
 
-    CommunicationDashboardAnalyticsResponse getAnalytics();
+    GlobalResponse getAnalytics();
 }

@@ -1,5 +1,6 @@
 package com.nepbrain.technology.customer.payload.response;
 
+import com.nepbrain.technology.core.enums.StatusEnum;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -23,6 +24,7 @@ public class CustomerBankDetailResponse {
     private String swiftCode;
     private String accountType;
     private Boolean isPrimary;
+    private StatusEnum status;
     private String remarks;
     private LocalDateTime createdAt;
     private LocalDateTime lastModifiedAt;

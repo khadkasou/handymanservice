@@ -1,5 +1,6 @@
 package com.nepbrain.technology.customer.payload.response;
 
+import com.nepbrain.technology.core.enums.StatusEnum;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -27,6 +28,7 @@ public class CustomerResponse {
     private String organizationName;
     private UUID branchId;
     private String branchName;
+    private StatusEnum status;
     private CustomerDetailResponse customerDetail;
     private List<CustomerAddressResponse> addresses;
     private List<CustomerBankDetailResponse> bankDetails;

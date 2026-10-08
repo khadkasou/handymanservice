@@ -1,16 +1,38 @@
 package com.nepbrain.technology.notification.service.impl;
+
+import com.nepbrain.technology.notification.entity.NotificationEntity;
 import com.nepbrain.technology.notification.payload.response.NotificationResponse;
 import com.nepbrain.technology.notification.repository.NotificationRepository;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import com.nepbrain.technology.core.payload.response.GlobalResponseBuilder;
 import com.nepbrain.technology.notification.service.NotificationService;
-import lombok.RequiredArgsConstructor; import org.modelmapper.ModelMapper;
-import org.springframework.stereotype.Service; import org.springframework.transaction.annotation.Transactional;
-import java.util.List; import java.util.UUID; import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
-@Service @RequiredArgsConstructor @Transactional(readOnly = true)
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
-    private final NotificationRepository notificationRepository; private final ModelMapper modelMapper;
-    @Override public List<NotificationResponse> notificationList(UUID customerId) {
-        return notificationRepository.findByCustomerIdOrderByCreatedAtDesc(customerId).stream()
-                .map(n -> modelMapper.map(n, NotificationResponse.class)).collect(Collectors.toList());
+
+    private final NotificationRepository notificationRepository;
+
+    @Override
+    public GlobalResponse notificationList(UUID customerId) {
+        List<NotificationResponse> notifications = new ArrayList<>();
+        for (NotificationEntity notification : notificationRepository.findByCustomerIdOrderByCreatedAtDesc(customerId)) {
+            notifications.add(NotificationResponse.builder()
+                    .id(notification.getId())
+                    .customerId(notification.getCustomerId())
+                    .type(notification.getType())
+                    .subject(notification.getSubject())
+                    .message(notification.getMessage())
+                    .isRead(notification.getIsRead())
+                    .dataId(notification.getDataId())
+                    .build());
+        }
+        return GlobalResponseBuilder.buildSuccessResponse(notifications);
     }
 }

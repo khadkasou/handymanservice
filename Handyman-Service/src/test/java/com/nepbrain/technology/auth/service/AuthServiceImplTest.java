@@ -1,5 +1,11 @@
 package com.nepbrain.technology.auth.service;
 
+import com.nepbrain.technology.core.enums.ApiStatusEnum;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 import com.nepbrain.technology.auth.entity.UserEntity;
 import com.nepbrain.technology.auth.enums.UserTypeEnum;
 import com.nepbrain.technology.auth.payload.request.*;
@@ -21,31 +27,23 @@ import org.modelmapper.ModelMapper;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
 @ExtendWith(MockitoExtension.class)
 class AuthServiceImplTest {
 
-    @Mock
-    private UserRepository userRepository;
+    @Mock private UserRepository userRepository;
 
-    @Spy
-    private ModelMapper modelMapper = new ModelMapper();
+    @Spy private ModelMapper modelMapper = new ModelMapper();
 
-    @InjectMocks
-    private AuthServiceImpl authService;
+    @InjectMocks private AuthServiceImpl authService;
 
     @BeforeEach
     void stubSave() {
         lenient().when(userRepository.save(any(UserEntity.class))).thenAnswer(invocation -> {
-            UserEntity entity = invocation.getArgument(0);
-            if (entity.getId() == null) {
+                UserEntity entity = invocation.getArgument(0);
+                if (entity.getId() == null) {
                 entity.setId(UUID.randomUUID());
-            }
-            return entity;
+        }
+                return entity;
         });
     }
 
@@ -62,8 +60,7 @@ class AuthServiceImplTest {
                 .build();
         when(userRepository.existsByEmail(request.getEmail())).thenReturn(false);
 
-        LoginResponse response = authService.register(request);
-
+        LoginResponse response = (LoginResponse) authService.register(request).getData();
         assertThat(response.getStatus()).isTrue();
         assertThat(response.getMessage()).isEqualTo("Registration successful");
         assertThat(response.getUserData().getEmail()).isEqualTo("user@example.com");
@@ -75,14 +72,10 @@ class AuthServiceImplTest {
 
     @Test
     void register_whenEmailExists_throwsAuth001() {
-        RegisterRequest request = RegisterRequest.builder()
-                .email("dup@example.com")
-                .password("secret")
-                .build();
+        RegisterRequest request = RegisterRequest.builder().email("dup@example.com").password("secret").build();
         when(userRepository.existsByEmail(request.getEmail())).thenReturn(true);
 
-        assertThatThrownBy(() -> authService.register(request))
-                .isInstanceOf(GlobalException.class)
+        assertThatThrownBy(() -> authService.register(request)).isInstanceOf(GlobalException.class)
                 .hasMessage("User already exists")
                 .extracting(ex -> ((GlobalException) ex).getCode())
                 .isEqualTo("AUTH001");
@@ -102,10 +95,10 @@ class AuthServiceImplTest {
         user.setId(id);
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
 
-        LoginResponse response = authService.login(LoginRequest.builder()
+        LoginResponse response = (LoginResponse) (authService.login(LoginRequest.builder()
                 .email("user@example.com")
                 .password("secret")
-                .build());
+                .build())).getData();
 
         assertThat(response.getStatus()).isTrue();
         assertThat(response.getMessage()).isEqualTo("Login successful");
@@ -152,13 +145,13 @@ class AuthServiceImplTest {
     void socialLogin_createsUserWhenMissing() {
         when(userRepository.findByEmail("social@example.com")).thenReturn(Optional.empty());
 
-        LoginResponse response = authService.socialLogin(LoginRequest.builder()
+        LoginResponse response = (LoginResponse) (authService.socialLogin(LoginRequest.builder()
                 .email("social@example.com")
                 .firstName("Soc")
                 .lastName("Ial")
                 .loginType("google")
                 .uid("google-uid")
-                .build());
+                .build())).getData();
 
         assertThat(response.getMessage()).isEqualTo("Social login successful");
         assertThat(response.getUserData().getEmail()).isEqualTo("social@example.com");
@@ -178,10 +171,8 @@ class AuthServiceImplTest {
         existing.setId(UUID.randomUUID());
         when(userRepository.findByEmail("social@example.com")).thenReturn(Optional.of(existing));
 
-        LoginResponse response = authService.socialLogin(LoginRequest.builder()
-                .email("social@example.com")
-                .uid("new-uid")
-                .build());
+        LoginResponse response = (LoginResponse) (authService.socialLogin(
+                LoginRequest.builder().email("social@example.com").uid("new-uid").build())).getData();
 
         assertThat(response.getMessage()).isEqualTo("Social login successful");
         assertThat(existing.getUid()).isEqualTo("new-uid");
@@ -203,11 +194,11 @@ class AuthServiceImplTest {
         user.setId(id);
         when(userRepository.findById(id)).thenReturn(Optional.of(user));
 
-        UserResponse response = authService.updateProfile(UpdateProfileRequest.builder()
+        UserResponse response = (UserResponse) (authService.updateProfile(UpdateProfileRequest.builder()
                 .id(id)
                 .firstName("New")
                 .displayName("Display")
-                .build());
+                .build())).getData();
 
         assertThat(response.getFirstName()).isEqualTo("New");
         assertThat(response.getDisplayName()).isEqualTo("Display");
@@ -238,10 +229,7 @@ class AuthServiceImplTest {
 
     @Test
     void changePassword_success() {
-        authService.changePassword(ChangePasswordRequest.builder()
-                .oldPassword("old")
-                .newPassword("new-pass")
-                .build());
+        authService.changePassword(ChangePasswordRequest.builder().oldPassword("old").newPassword("new-pass").build());
     }
 
     @Test
@@ -258,9 +246,12 @@ class AuthServiceImplTest {
 
     @Test
     void forgotPassword_success() {
-        when(userRepository.findByEmail("user@example.com"))
-                .thenReturn(Optional.of(UserEntity.builder().email("user@example.com").username("u")
-                        .passwordHash("h").userType(UserTypeEnum.USER).build()));
+        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(UserEntity.builder()
+                .email("user@example.com")
+                .username("u")
+                .passwordHash("h")
+                .userType(UserTypeEnum.USER)
+                .build()));
 
         authService.forgotPassword(ForgotPasswordRequest.builder().email("user@example.com").build());
         verify(userRepository).findByEmail("user@example.com");
@@ -290,8 +281,7 @@ class AuthServiceImplTest {
         UUID id = UUID.randomUUID();
         when(userRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> authService.deleteUserAccount(id))
-                .isInstanceOf(GlobalException.class)
+        assertThatThrownBy(() -> authService.deleteUserAccount(id)).isInstanceOf(GlobalException.class)
                 .extracting(ex -> ((GlobalException) ex).getCode())
                 .isEqualTo("AUTH002");
     }
@@ -346,8 +336,7 @@ class AuthServiceImplTest {
         user.setId(id);
         when(userRepository.findById(id)).thenReturn(Optional.of(user));
 
-        UserResponse response = authService.getUserDetail(id);
-
+        UserResponse response = (UserResponse) authService.getUserDetail(id).getData();
         assertThat(response.getId()).isEqualTo(id);
         assertThat(response.getUserType()).isEqualTo("provider");
         assertThat(response.getStatus()).isEqualTo("ACTIVE");
@@ -358,8 +347,7 @@ class AuthServiceImplTest {
         UUID id = UUID.randomUUID();
         when(userRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> authService.getUserDetail(id))
-                .isInstanceOf(GlobalException.class)
+        assertThatThrownBy(() -> authService.getUserDetail(id)).isInstanceOf(GlobalException.class)
                 .extracting(ex -> ((GlobalException) ex).getCode())
                 .isEqualTo("AUTH002");
     }

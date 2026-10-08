@@ -1,5 +1,10 @@
 package com.nepbrain.technology.notification.service;
 
+import com.nepbrain.technology.core.enums.ApiStatusEnum;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import com.nepbrain.technology.notification.entity.NotificationEntity;
 import com.nepbrain.technology.notification.payload.response.NotificationResponse;
 import com.nepbrain.technology.notification.repository.NotificationRepository;
@@ -17,26 +22,18 @@ import org.modelmapper.convention.MatchingStrategies;
 import java.util.List;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 @ExtendWith(MockitoExtension.class)
 class NotificationServiceImplTest {
 
     @Mock private NotificationRepository notificationRepository;
 
-    @Spy
-    private ModelMapper modelMapper = configuredMapper();
+    @Spy private ModelMapper modelMapper = configuredMapper();
 
-    @InjectMocks
-    private NotificationServiceImpl notificationService;
+    @InjectMocks private NotificationServiceImpl notificationService;
 
     private static ModelMapper configuredMapper() {
         ModelMapper mapper = new ModelMapper();
-        mapper.getConfiguration()
-                .setFieldMatchingEnabled(true)
-                .setFieldAccessLevel(AccessLevel.PRIVATE)
+        mapper.getConfiguration().setFieldMatchingEnabled(true).setFieldAccessLevel(AccessLevel.PRIVATE)
                 .setMatchingStrategy(MatchingStrategies.STRICT)
                 .setSkipNullEnabled(true);
         return mapper;
@@ -54,11 +51,9 @@ class NotificationServiceImplTest {
                 .dataId(UUID.randomUUID())
                 .build();
         entity.setId(UUID.randomUUID());
-        when(notificationRepository.findByCustomerIdOrderByCreatedAtDesc(customerId))
-                .thenReturn(List.of(entity));
+        when(notificationRepository.findByCustomerIdOrderByCreatedAtDesc(customerId)).thenReturn(List.of(entity));
 
-        List<NotificationResponse> result = notificationService.notificationList(customerId);
-
+        List<NotificationResponse> result = (List<NotificationResponse>) notificationService.notificationList(customerId).getData();
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().getCustomerId()).isEqualTo(customerId);
         assertThat(result.getFirst().getSubject()).isEqualTo("Update");
@@ -71,8 +66,7 @@ class NotificationServiceImplTest {
         UUID customerId = UUID.randomUUID();
         when(notificationRepository.findByCustomerIdOrderByCreatedAtDesc(customerId)).thenReturn(List.of());
 
-        List<NotificationResponse> result = notificationService.notificationList(customerId);
-
+        List<NotificationResponse> result = (List<NotificationResponse>) notificationService.notificationList(customerId).getData();
         assertThat(result).isEmpty();
         verify(notificationRepository).findByCustomerIdOrderByCreatedAtDesc(customerId);
     }

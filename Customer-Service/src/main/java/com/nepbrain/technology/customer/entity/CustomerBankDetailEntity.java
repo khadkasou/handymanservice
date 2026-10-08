@@ -1,6 +1,7 @@
 package com.nepbrain.technology.customer.entity;
 
 import com.nepbrain.technology.core.entity.BaseAuditEntity;
+import com.nepbrain.technology.core.enums.StatusEnum;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -34,6 +35,10 @@ public class CustomerBankDetailEntity extends BaseAuditEntity {
     private String accountType; // SAVINGS, CURRENT, FIXED_DEPOSIT, etc.
 
     private Boolean isPrimary;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "varchar(20) default 'ACTIVE'")
+    private StatusEnum status = StatusEnum.ACTIVE;
 
     @Column(length = 500)
     private String remarks;

@@ -1,5 +1,11 @@
 package com.nepbrain.technology.catalog.service;
 
+import com.nepbrain.technology.core.enums.ApiStatusEnum;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 import com.nepbrain.technology.catalog.entity.CategoryEntity;
 import com.nepbrain.technology.catalog.entity.FavouriteServiceEntity;
 import com.nepbrain.technology.catalog.entity.ServiceEntity;
@@ -27,50 +33,35 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
 @ExtendWith(MockitoExtension.class)
 class CatalogServiceImplTest {
 
-    @Mock
-    private CategoryRepository categoryRepository;
-    @Mock
-    private ServiceRepository serviceRepository;
-    @Mock
-    private FavouriteServiceRepository favouriteServiceRepository;
+    @Mock private CategoryRepository categoryRepository;
+    @Mock private ServiceRepository serviceRepository;
+    @Mock private FavouriteServiceRepository favouriteServiceRepository;
 
-    @Spy
-    private ModelMapper modelMapper = new ModelMapper();
+    @Spy private ModelMapper modelMapper = new ModelMapper();
 
-    @InjectMocks
-    private CatalogServiceImpl catalogService;
+    @InjectMocks private CatalogServiceImpl catalogService;
 
     @BeforeEach
     void stubFavouriteSave() {
-        lenient().when(favouriteServiceRepository.save(any(FavouriteServiceEntity.class)))
-                .thenAnswer(invocation -> {
-                    FavouriteServiceEntity entity = invocation.getArgument(0);
-                    if (entity.getId() == null) {
-                        entity.setId(UUID.randomUUID());
-                    }
-                    return entity;
-                });
+        lenient().when(favouriteServiceRepository.save(any(FavouriteServiceEntity.class))).thenAnswer(invocation -> {
+                FavouriteServiceEntity entity = invocation.getArgument(0);
+                if (entity.getId() == null) {
+                entity.setId(UUID.randomUUID());
+        }
+                return entity;
+        });
     }
 
     @Test
     void categoryList_returnsRootCategories() {
-        CategoryEntity category = CategoryEntity.builder()
-                .name("Plumbing")
-                .status(StatusEnum.ACTIVE)
-                .build();
+        CategoryEntity category = CategoryEntity.builder().name("Plumbing").status(StatusEnum.ACTIVE).build();
         category.setId(UUID.randomUUID());
         when(categoryRepository.findByParentIdIsNull()).thenReturn(List.of(category));
 
-        List<CategoryResponse> list = catalogService.categoryList();
-
+        List<CategoryResponse> list = (List<CategoryResponse>) catalogService.categoryList().getData();
         assertThat(list).hasSize(1);
         assertThat(list.getFirst().getName()).isEqualTo("Plumbing");
         assertThat(list.getFirst().getStatus()).isEqualTo("ACTIVE");
@@ -88,8 +79,7 @@ class CatalogServiceImplTest {
         sub.setId(UUID.randomUUID());
         when(categoryRepository.findByParentId(parentId)).thenReturn(List.of(sub));
 
-        List<CategoryResponse> list = catalogService.subcategoryList(parentId);
-
+        List<CategoryResponse> list = (List<CategoryResponse>) catalogService.subcategoryList(parentId).getData();
         assertThat(list).hasSize(1);
         assertThat(list.getFirst().getName()).isEqualTo("Pipe Repair");
         verify(categoryRepository).findByParentId(parentId);
@@ -105,8 +95,7 @@ class CatalogServiceImplTest {
         service.setId(UUID.randomUUID());
         when(serviceRepository.findAll()).thenReturn(List.of(service));
 
-        List<ServiceResponse> list = catalogService.serviceList(UUID.randomUUID());
-
+        List<ServiceResponse> list = (List<ServiceResponse>) catalogService.serviceList(UUID.randomUUID()).getData();
         assertThat(list).hasSize(1);
         assertThat(list.getFirst().getName()).isEqualTo("AC Repair");
         assertThat(list.getFirst().getStatus()).isEqualTo("ACTIVE");
@@ -115,15 +104,11 @@ class CatalogServiceImplTest {
     @Test
     void serviceDetail_success() {
         UUID id = UUID.randomUUID();
-        ServiceEntity service = ServiceEntity.builder()
-                .name("Cleaning")
-                .status(StatusEnum.ACTIVE)
-                .build();
+        ServiceEntity service = ServiceEntity.builder().name("Cleaning").status(StatusEnum.ACTIVE).build();
         service.setId(id);
         when(serviceRepository.findById(id)).thenReturn(Optional.of(service));
 
-        ServiceResponse response = catalogService.serviceDetail(ServiceRequest.builder().id(id).build());
-
+        ServiceResponse response = (ServiceResponse) catalogService.serviceDetail(ServiceRequest.builder().id(id).build()).getData();
         assertThat(response.getId()).isEqualTo(id);
         assertThat(response.getName()).isEqualTo("Cleaning");
     }
@@ -155,11 +140,9 @@ class CatalogServiceImplTest {
                 .status(StatusEnum.ACTIVE)
                 .build();
         other.setId(UUID.randomUUID());
-        when(serviceRepository.findByNameContainingIgnoreCase("Deep"))
-                .thenReturn(List.of(match, other));
+        when(serviceRepository.findByNameContainingIgnoreCase("Deep")).thenReturn(List.of(match, other));
 
-        List<ServiceResponse> list = catalogService.searchList("Deep", categoryId);
-
+        List<ServiceResponse> list = (List<ServiceResponse>) catalogService.searchList("Deep", categoryId).getData();
         assertThat(list).hasSize(1);
         assertThat(list.getFirst().getName()).isEqualTo("Deep Clean");
     }
@@ -175,8 +158,7 @@ class CatalogServiceImplTest {
         match.setId(UUID.randomUUID());
         when(serviceRepository.findAll()).thenReturn(List.of(match));
 
-        List<ServiceResponse> list = catalogService.searchList("  ", categoryId);
-
+        List<ServiceResponse> list = (List<ServiceResponse>) catalogService.searchList("  ", categoryId).getData();
         assertThat(list).hasSize(1);
         verify(serviceRepository).findAll();
     }
@@ -185,13 +167,9 @@ class CatalogServiceImplTest {
     void saveFavourite_createsWhenMissing() {
         UUID userId = UUID.randomUUID();
         UUID serviceId = UUID.randomUUID();
-        when(favouriteServiceRepository.findByUserIdAndServiceId(userId, serviceId))
-                .thenReturn(Optional.empty());
+        when(favouriteServiceRepository.findByUserIdAndServiceId(userId, serviceId)).thenReturn(Optional.empty());
 
-        catalogService.saveFavourite(FavouriteRequest.builder()
-                .userId(userId)
-                .serviceId(serviceId)
-                .build());
+        catalogService.saveFavourite(FavouriteRequest.builder().userId(userId).serviceId(serviceId).build());
 
         verify(favouriteServiceRepository).save(any(FavouriteServiceEntity.class));
     }
@@ -200,54 +178,45 @@ class CatalogServiceImplTest {
     void saveFavourite_skipsWhenAlreadyExists() {
         UUID userId = UUID.randomUUID();
         UUID serviceId = UUID.randomUUID();
-        FavouriteServiceEntity existing = FavouriteServiceEntity.builder()
-                .userId(userId)
-                .serviceId(serviceId)
-                .build();
+        FavouriteServiceEntity existing = FavouriteServiceEntity.builder().userId(userId).serviceId(serviceId).build();
         existing.setId(UUID.randomUUID());
-        when(favouriteServiceRepository.findByUserIdAndServiceId(userId, serviceId))
-                .thenReturn(Optional.of(existing));
+        when(favouriteServiceRepository.findByUserIdAndServiceId(userId, serviceId)).thenReturn(Optional.of(existing));
 
-        catalogService.saveFavourite(FavouriteRequest.builder()
-                .userId(userId)
-                .serviceId(serviceId)
-                .build());
+        catalogService.saveFavourite(FavouriteRequest.builder().userId(userId).serviceId(serviceId).build());
 
         verify(favouriteServiceRepository, never()).save(any());
     }
 
     @Test
-    void deleteFavourite_delegatesToRepository() {
+    void deleteFavourite_marksInactive() {
         UUID userId = UUID.randomUUID();
         UUID serviceId = UUID.randomUUID();
-
-        catalogService.deleteFavourite(FavouriteRequest.builder()
+        FavouriteServiceEntity existing = FavouriteServiceEntity.builder()
                 .userId(userId)
                 .serviceId(serviceId)
-                .build());
+                .status(StatusEnum.ACTIVE)
+                .build();
+        existing.setId(UUID.randomUUID());
+        when(favouriteServiceRepository.findByUserIdAndServiceId(userId, serviceId)).thenReturn(Optional.of(existing));
 
-        verify(favouriteServiceRepository).deleteByUserIdAndServiceId(userId, serviceId);
+        catalogService.deleteFavourite(FavouriteRequest.builder().userId(userId).serviceId(serviceId).build());
+
+        assertThat(existing.getStatus()).isEqualTo(StatusEnum.INACTIVE);
+        verify(favouriteServiceRepository).save(existing);
     }
 
     @Test
     void userFavouriteService_resolvesServices() {
         UUID userId = UUID.randomUUID();
         UUID serviceId = UUID.randomUUID();
-        FavouriteServiceEntity fav = FavouriteServiceEntity.builder()
-                .userId(userId)
-                .serviceId(serviceId)
-                .build();
+        FavouriteServiceEntity fav = FavouriteServiceEntity.builder().userId(userId).serviceId(serviceId).build();
         fav.setId(UUID.randomUUID());
-        ServiceEntity service = ServiceEntity.builder()
-                .name("Fav Service")
-                .status(StatusEnum.ACTIVE)
-                .build();
+        ServiceEntity service = ServiceEntity.builder().name("Fav Service").status(StatusEnum.ACTIVE).build();
         service.setId(serviceId);
         when(favouriteServiceRepository.findByUserId(userId)).thenReturn(List.of(fav));
         when(serviceRepository.findById(serviceId)).thenReturn(Optional.of(service));
 
-        List<ServiceResponse> list = catalogService.userFavouriteService(userId);
-
+        List<ServiceResponse> list = (List<ServiceResponse>) catalogService.userFavouriteService(userId).getData();
         assertThat(list).hasSize(1);
         assertThat(list.getFirst().getName()).isEqualTo("Fav Service");
     }
@@ -256,14 +225,12 @@ class CatalogServiceImplTest {
     void userFavouriteService_skipsMissingService() {
         UUID userId = UUID.randomUUID();
         UUID missingServiceId = UUID.randomUUID();
-        FavouriteServiceEntity fav = FavouriteServiceEntity.builder()
-                .userId(userId)
-                .serviceId(missingServiceId)
-                .build();
+        FavouriteServiceEntity fav =
+                FavouriteServiceEntity.builder().userId(userId).serviceId(missingServiceId).build();
         fav.setId(UUID.randomUUID());
         when(favouriteServiceRepository.findByUserId(userId)).thenReturn(List.of(fav));
         when(serviceRepository.findById(missingServiceId)).thenReturn(Optional.empty());
 
-        assertThat(catalogService.userFavouriteService(userId)).isEmpty();
+        assertThat((java.util.List<?>) catalogService.userFavouriteService(userId).getData()).isEmpty();
     }
 }

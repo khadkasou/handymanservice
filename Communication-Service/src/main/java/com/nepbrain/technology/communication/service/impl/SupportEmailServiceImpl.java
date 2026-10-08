@@ -14,6 +14,8 @@ import com.nepbrain.technology.communication.repository.SupportEmailRepository;
 import com.nepbrain.technology.communication.service.SupportEmailService;
 import com.nepbrain.technology.communication.service.specification.SupportEmailSpecification;
 import com.nepbrain.technology.core.exception.GlobalException;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import com.nepbrain.technology.core.payload.response.GlobalResponseBuilder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -37,7 +39,7 @@ public class SupportEmailServiceImpl implements SupportEmailService {
 
     @Override
     @Transactional
-    public SupportEmailResponse create(SupportEmailRequest request) {
+    public GlobalResponse create(SupportEmailRequest request) {
         SupportEmailEntity entity = SupportEmailEntity.builder()
                 .email(request.getEmail())
                 .name(request.getName())
@@ -49,12 +51,12 @@ public class SupportEmailServiceImpl implements SupportEmailService {
                 .message(request.getMessage())
                 .build();
         entity = supportEmailRepository.save(entity);
-        return toResponse(entity);
+        return GlobalResponseBuilder.buildSuccessResponse("message.support.create.success", toResponse(entity));
     }
 
     @Override
     @Transactional
-    public SupportEmailReplyResponse addReply(UUID supportEmailId, SupportEmailReplyRequest request) {
+    public GlobalResponse addReply(UUID supportEmailId, SupportEmailReplyRequest request) {
         SupportEmailEntity supportEmail = supportEmailRepository.findById(supportEmailId)
                 .orElseThrow(() -> new GlobalException(ErrorCodeEnum.SUP001.name()));
         SupportEmailReplyEntity reply = SupportEmailReplyEntity.builder()
@@ -62,19 +64,19 @@ public class SupportEmailServiceImpl implements SupportEmailService {
                 .message(request.getMessage())
                 .build();
         reply = supportEmailReplyRepository.save(reply);
-        return toReplyResponse(reply);
+        return GlobalResponseBuilder.buildSuccessResponse("message.support.reply.success", toReplyResponse(reply));
     }
 
     @Override
-    public SupportEmailResponse getById(UUID id) {
+    public GlobalResponse getById(UUID id) {
         SupportEmailEntity entity = supportEmailRepository.findById(id)
                 .orElseThrow(() -> new GlobalException(ErrorCodeEnum.SUP001.name()));
         List<SupportEmailReplyEntity> replies = supportEmailReplyRepository.findAllBySupportEmailOrderByCreatedAtAsc(entity);
-        return toResponse(entity, replies);
+        return GlobalResponseBuilder.buildSuccessResponse(toResponse(entity, replies));
     }
 
     @Override
-    public DatapaginationResponse getAll(SupportEmailDataRequest request) {
+    public GlobalResponse getAll(SupportEmailDataRequest request) {
         Specification<SupportEmailEntity> spec = SupportEmailSpecification.supportEmailFilter(request);
         String direction = request.getDirection() != null && request.getDirection().equalsIgnoreCase("desc") ? "desc" : "asc";
         String sortBy = request.getSortBy() != null && !request.getSortBy().isBlank() ? request.getSortBy() : "createdAt";
@@ -86,10 +88,10 @@ public class SupportEmailServiceImpl implements SupportEmailService {
         List<SupportEmailResponse> result = page.getContent().stream()
                 .map(this::toSummaryResponse)
                 .collect(Collectors.toList());
-        return DatapaginationResponse.builder()
+        return GlobalResponseBuilder.buildSuccessResponse(DatapaginationResponse.builder()
                 .totalElementCount(page.getTotalElements())
                 .result(result)
-                .build();
+                .build());
     }
 
     private SupportEmailResponse toSummaryResponse(SupportEmailEntity entity) {

@@ -10,6 +10,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ErrorMessageResponse {
-  private String fieldName;
-  private String message;
+
+    private String fieldName;
+    private String message;
 }

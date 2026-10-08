@@ -8,6 +8,7 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 public class PaginationResponse {
+
     public long totalElements;
     private Object result;
 }

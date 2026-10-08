@@ -11,8 +11,10 @@ public class PaginationRequest {
     private Integer pageSize;
     private String sortBy;
     private String sortDirection;
+
     /** Optional free-text filter (e.g. employee name or code). */
     private String search;
+
     /** Optional branch filter (employee.branchId). */
     private java.util.UUID branchId;
 }

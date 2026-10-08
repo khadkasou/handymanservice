@@ -13,6 +13,7 @@ public interface CustomerMapper {
     @Mapping(target = "addresses", ignore = true)
     @Mapping(target = "bankDetails", ignore = true)
     @Mapping(target = "preferences", ignore = true)
+    @Mapping(target = "status", ignore = true)
     CustomerEntity toEntity(CustomerRequest request);
     
     @Mapping(target = "customerDetail", ignore = true)
@@ -26,6 +27,7 @@ public interface CustomerMapper {
     @Mapping(target = "addresses", ignore = true)
     @Mapping(target = "bankDetails", ignore = true)
     @Mapping(target = "preferences", ignore = true)
+    @Mapping(target = "status", ignore = true)
     void updateEntity(CustomerRequest request, @MappingTarget CustomerEntity entity);
 }
 

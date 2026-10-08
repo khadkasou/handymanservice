@@ -1,5 +1,6 @@
 package com.nepbrain.technology.customer.payload.response;
 
+import com.nepbrain.technology.core.enums.StatusEnum;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -28,6 +29,7 @@ public class CustomerDetailResponse {
     private String preferredLanguage;
     private String additionalInfo;
     private String profilePictureUrl;
+    private StatusEnum status;
     private LocalDateTime createdAt;
     private LocalDateTime lastModifiedAt;
     private UUID createdBy;

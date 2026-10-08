@@ -4,7 +4,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/users
     username: postgres
-    password: password
+    password: ${DB_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
     hikari:
       pool-name: OpaqueAuthHikariPool

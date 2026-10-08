@@ -1,8 +1,14 @@
 package com.nepbrain.technology.geo.service;
-import com.nepbrain.technology.geo.payload.response.*;
-import java.util.List; import java.util.UUID;
+
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+
+import java.util.UUID;
+
 public interface GeoService {
-    List<CountryResponse> countryList();
-    List<StateResponse> stateList(UUID countryId);
-    List<CityResponse> cityList(UUID stateId);
+
+    GlobalResponse countryList();
+
+    GlobalResponse stateList(UUID countryId);
+
+    GlobalResponse cityList(UUID stateId);
 }

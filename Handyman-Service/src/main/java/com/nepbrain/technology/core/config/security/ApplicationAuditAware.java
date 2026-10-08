@@ -15,10 +15,10 @@ public class ApplicationAuditAware implements AuditorAware<UUID> {
     @NonNull
     public Optional<UUID> getCurrentAuditor() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated() || authentication instanceof AnonymousAuthenticationToken) {
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken) {
             return Optional.empty();
         }
         return Optional.of(UUID.fromString(authentication.getName()));
     }
-
 }

@@ -1,6 +1,7 @@
 package com.nepbrain.technology.customer.entity;
 
 import com.nepbrain.technology.core.entity.BaseAuditEntity;
+import com.nepbrain.technology.core.enums.StatusEnum;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -29,5 +30,9 @@ public class CustomerPreferenceEntity extends BaseAuditEntity {
     private String description; // Description of what this preference is for
 
     private String category; // e.g., "communication", "display", "billing", "shipping", etc.
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "varchar(20) default 'ACTIVE'")
+    private StatusEnum status = StatusEnum.ACTIVE;
 }
 

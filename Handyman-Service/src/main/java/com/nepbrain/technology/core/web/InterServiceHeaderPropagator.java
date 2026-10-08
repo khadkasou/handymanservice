@@ -1,6 +1,5 @@
 package com.nepbrain.technology.core.web;
 
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestAttributes;
@@ -8,17 +7,18 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.function.Consumer;
 
 @Component
 public class InterServiceHeaderPropagator {
 
     private static final String[][] HEADER_GROUPS = {
-            {"X-Company-Id", "companyId", "company_id", "company-id"},
-            {"X-Tenant-Id", "tenantId", "tenant_id", "tenant-id"},
-            {"X-Branch-Id", "branchId", "branch_id", "branch-id"},
-            {"X-Forwarded-Host", "x-forwarded-host"},
-            {"Host", "host"}
+        {"X-Company-Id", "companyId", "company_id", "company-id"},
+        {"X-Tenant-Id", "tenantId", "tenant_id", "tenant-id"},
+        {"X-Branch-Id", "branchId", "branch_id", "branch-id"},
+        {"X-Forwarded-Host", "x-forwarded-host"},
+        {"Host", "host"}
     };
 
     public Consumer<WebClient.RequestHeadersSpec<?>> tenantScopeHeaders() {
@@ -35,8 +35,8 @@ public class InterServiceHeaderPropagator {
         }
     }
 
-    private static void copyFirstPresent(
-            HttpServletRequest request, org.springframework.http.HttpHeaders target, String[] names) {
+    private static void copyFirstPresent(HttpServletRequest request, org.springframework.http.HttpHeaders target,
+            String[] names) {
         for (String name : names) {
             String value = request.getHeader(name);
             if (!StringUtils.hasText(value)) {

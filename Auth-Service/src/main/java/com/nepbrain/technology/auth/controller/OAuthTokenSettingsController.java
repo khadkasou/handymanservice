@@ -2,7 +2,6 @@ package com.nepbrain.technology.auth.controller;
 
 import com.nepbrain.technology.auth.payload.request.OAuthTokenSettingsRequest;
 import com.nepbrain.technology.auth.payload.response.ServiceResponse;
-import com.nepbrain.technology.auth.payload.response.ServiceResponseBuilder;
 import com.nepbrain.technology.auth.service.OAuthTokenSettingsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,16 +26,12 @@ public class OAuthTokenSettingsController {
     @GetMapping
     @PreAuthorize("hasAuthority('SUPER_ADMIN')")
     public ResponseEntity<ServiceResponse> get() {
-        return ResponseEntity.ok(ServiceResponseBuilder.buildSuccess(
-                "OAuth token settings loaded",
-                oAuthTokenSettingsService.getCurrent()));
+        return ResponseEntity.ok().body(oAuthTokenSettingsService.getCurrent());
     }
 
     @PutMapping
     @PreAuthorize("hasAuthority('SUPER_ADMIN')")
     public ResponseEntity<ServiceResponse> update(@RequestBody OAuthTokenSettingsRequest request) {
-        return ResponseEntity.ok(ServiceResponseBuilder.buildSuccess(
-                "OAuth token settings updated",
-                oAuthTokenSettingsService.update(request)));
+        return ResponseEntity.ok().body(oAuthTokenSettingsService.update(request));
     }
 }

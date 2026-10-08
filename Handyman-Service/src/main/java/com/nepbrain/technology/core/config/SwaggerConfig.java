@@ -29,18 +29,22 @@ public class SwaggerConfig {
         contact.setEmail("support@nepbrain.technology");
         contact.setUrl("https://nepbrain.technology");
 
-        return new OpenAPI().info(new Info().title(applicationName + " API")
-                        .description(applicationName + " Project")
-                        .contact(contact))
+        return new OpenAPI().info(new Info().title(applicationName + " API").description(applicationName + " Project")
+                .contact(contact))
                 .servers(List.of(new Server().url(serverURL)));
     }
+
     @Bean
     public OpenApiCustomizer addHeadersGlobal() {
         return openApi -> {
             openApi.getPaths().values().forEach(pathItem -> pathItem.readOperations().forEach(operation -> {
-                operation.addParametersItem(new HeaderParameter()
-                        .name("X-XSRF-TOKEN").description("A custom header for all requests")
-                        .required(true).schema(new StringSchema()._default("BquLOJXXt2ng415MpvK4a8F0CF/w/1iawsnFqHzPGeo=")));
+                    operation.addParametersItem(new HeaderParameter()
+                    .name("X-XSRF-TOKEN")
+                    .description("A custom header" + " for all"
+                    + " requests")
+                    .required(true)
+                    .schema(new StringSchema()._default(
+                    "BquLOJXXt2ng415MpvK4a8F0CF/w/1iawsnFqHzPGeo=")));
             }));
         };
     }

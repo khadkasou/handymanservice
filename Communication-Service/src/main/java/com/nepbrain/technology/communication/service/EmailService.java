@@ -1,5 +1,6 @@
 package com.nepbrain.technology.communication.service;
 
+import com.nepbrain.technology.communication.enums.ErrorCodeEnum;
 import com.nepbrain.technology.communication.payload.request.CommunicationRequest;
 import com.nepbrain.technology.communication.record.EmailRecord;
 import com.nepbrain.technology.core.exception.GlobalException;
@@ -47,7 +48,7 @@ public class EmailService {
             logger.info("Message sent successfully to {} via AWS SES", request.getEmail());
         } catch (Exception e) {
             logger.error("Failed to send email to {}: {}", request.getEmail(), e.getMessage());
-            throw new GlobalException("EMAIL001", e);
+            throw new GlobalException(ErrorCodeEnum.EMAIL001.name(), e);
         }
     }
 }

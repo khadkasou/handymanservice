@@ -102,5 +102,4 @@ public enum LanguageEnum {
     LanguageEnum(String language) {
         this.language = language;
     }
-
 }

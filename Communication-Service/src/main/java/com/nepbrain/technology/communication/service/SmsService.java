@@ -5,6 +5,7 @@ package com.nepbrain.technology.communication.service;
  * @Author suroj.awal
  */
 
+import com.nepbrain.technology.communication.enums.ErrorCodeEnum;
 import com.nepbrain.technology.communication.payload.request.BulkSMSRequest;
 import com.nepbrain.technology.communication.payload.request.CommunicationRequest;
 import com.nepbrain.technology.communication.payload.request.SmsRequest;
@@ -69,7 +70,7 @@ public class SmsService {
                     .block();
         } catch (Exception e) {
             log.error("{}", (Object) e.getStackTrace());
-            throw new GlobalException("SMS001", e);
+            throw new GlobalException(ErrorCodeEnum.SMS001.name(), e);
         }
     }
 

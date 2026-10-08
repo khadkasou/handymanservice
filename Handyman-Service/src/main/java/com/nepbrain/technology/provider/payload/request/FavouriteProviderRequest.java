@@ -1,7 +1,16 @@
 package com.nepbrain.technology.provider.payload.request;
+
 import lombok.*;
-import java.math.BigDecimal; import java.time.LocalDate; import java.time.LocalDateTime; import java.util.List; import java.util.Map; import java.util.UUID;
-@Getter @Setter @AllArgsConstructor @NoArgsConstructor @Builder
+
+import java.util.UUID;
+
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class FavouriteProviderRequest {
-private UUID userId; private UUID providerId;
+
+    private UUID userId;
+    private UUID providerId;
 }

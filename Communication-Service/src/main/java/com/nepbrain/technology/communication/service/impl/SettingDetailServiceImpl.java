@@ -13,12 +13,15 @@ import com.nepbrain.technology.communication.repository.SettingCategoryRepositor
 import com.nepbrain.technology.communication.repository.SettingDetailRepository;
 import com.nepbrain.technology.communication.service.SettingDetailService;
 import com.nepbrain.technology.core.exception.GlobalException;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import com.nepbrain.technology.core.payload.response.GlobalResponseBuilder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -37,11 +40,11 @@ public class SettingDetailServiceImpl implements SettingDetailService {
 
     @Override
     @Transactional
-    public void create(SettingDetailRequest request) {
+    public GlobalResponse create(SettingDetailRequest request) {
         SettingCategoryEntity category = settingCategoryRepository.findById(request.getSettingCategoryId())
                 .orElseThrow(() -> new GlobalException(ErrorCodeEnum.SET002.name()));
         if (settingDetailRepository.findBySettingCategoryAndKey(category, request.getKey()).isPresent()) {
-            throw new GlobalException(ErrorCodeEnum.MSG001.name());
+            throw new GlobalException(ErrorCodeEnum.MSG001.name(), HttpStatus.CONFLICT);
         }
         SettingDetailEntity entity = SettingDetailEntity.builder()
                 .key(request.getKey())
@@ -50,48 +53,50 @@ public class SettingDetailServiceImpl implements SettingDetailService {
                 .settingCategory(category)
                 .build();
         settingDetailRepository.save(entity);
+        return GlobalResponseBuilder.buildSuccessResponse("message.setting.detail.create.success");
     }
 
     @Override
     @Transactional
-    public void update(UUID id, SettingDetailRequest request) {
+    public GlobalResponse update(UUID id, SettingDetailRequest request) {
         SettingDetailEntity entity = settingDetailRepository.findById(id)
                 .orElseThrow(() -> new GlobalException(ErrorCodeEnum.SET003.name()));
         SettingCategoryEntity category = settingCategoryRepository.findById(request.getSettingCategoryId())
                 .orElseThrow(() -> new GlobalException(ErrorCodeEnum.SET002.name()));
         if (!entity.getKey().equals(request.getKey())
                 && settingDetailRepository.findBySettingCategoryAndKey(category, request.getKey()).isPresent()) {
-            throw new GlobalException(ErrorCodeEnum.MSG001.name());
+            throw new GlobalException(ErrorCodeEnum.MSG001.name(), HttpStatus.CONFLICT);
         }
         entity.setKey(request.getKey());
         entity.setValue(request.getValue());
         entity.setDisplayName(request.getDisplayName());
         entity.setSettingCategory(category);
         settingDetailRepository.save(entity);
+        return GlobalResponseBuilder.buildSuccessResponse("message.setting.detail.update.success");
     }
 
     @Override
     @Transactional(readOnly = true)
-    public SettingDetailResponse getById(UUID id) {
+    public GlobalResponse getById(UUID id) {
         SettingDetailEntity entity = settingDetailRepository.findById(id)
                 .orElseThrow(() -> new GlobalException(ErrorCodeEnum.SET003.name()));
-        return toResponse(entity);
+        return GlobalResponseBuilder.buildSuccessResponse(toResponse(entity));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public SettingDetailResponse getByKey(String key) {
+    public GlobalResponse getByKey(String key) {
         if (!StringUtils.hasText(key)) {
             throw new GlobalException(ErrorCodeEnum.SET003.name());
         }
         SettingDetailEntity entity = settingDetailRepository.findFirstByKeyIgnoreCase(key.trim())
                 .orElseThrow(() -> new GlobalException(ErrorCodeEnum.SET003.name()));
-        return toResponse(entity);
+        return GlobalResponseBuilder.buildSuccessResponse(toResponse(entity));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public DatapaginationResponse list(SettingDetailListRequest request) {
+    public GlobalResponse list(SettingDetailListRequest request) {
         Specification<SettingDetailEntity> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (request.getSettingCategoryId() != null) {
@@ -112,23 +117,24 @@ public class SettingDetailServiceImpl implements SettingDetailService {
         Pageable pageable = PageRequest.of(pageNo, pageSize, Sort.by(Sort.Direction.fromString(dir), sortBy));
         Page<SettingDetailEntity> page = settingDetailRepository.findAll(spec, pageable);
         List<SettingDetailResponse> result = page.getContent().stream().map(this::toResponse).toList();
-        return DatapaginationResponse.builder()
+        return GlobalResponseBuilder.buildSuccessResponse(DatapaginationResponse.builder()
                 .totalElementCount(page.getTotalElements())
                 .result(result)
-                .build();
+                .build());
     }
 
     @Override
     @Transactional
-    public void delete(UUID id) {
+    public GlobalResponse delete(UUID id) {
         SettingDetailEntity entity = settingDetailRepository.findById(id)
                 .orElseThrow(() -> new GlobalException(ErrorCodeEnum.SET003.name()));
         settingDetailRepository.delete(entity);
+        return GlobalResponseBuilder.buildSuccessResponse("message.setting.detail.delete.success");
     }
 
     @Override
     @Transactional
-    public void bulkUpdateBySettingCategoryId(SettingDetailBulkUpdateRequest request) {
+    public GlobalResponse bulkUpdateBySettingCategoryId(SettingDetailBulkUpdateRequest request) {
         SettingCategoryEntity category = settingCategoryRepository.findById(request.getSettingCategoryId())
                 .orElseThrow(() -> new GlobalException(ErrorCodeEnum.SET002.name()));
         for (SettingDetailItemRequest item : request.getDetails()) {
@@ -143,6 +149,7 @@ public class SettingDetailServiceImpl implements SettingDetailService {
                         settingDetailRepository.save(entity);
                     });
         }
+        return GlobalResponseBuilder.buildSuccessResponse("message.setting.detail.bulk.success");
     }
 
     private SettingDetailResponse toResponse(SettingDetailEntity entity) {

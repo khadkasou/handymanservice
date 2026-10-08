@@ -1,6 +1,7 @@
 package com.nepbrain.technology.customer.entity;
 
 import com.nepbrain.technology.core.entity.BaseAuditEntity;
+import com.nepbrain.technology.core.enums.StatusEnum;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -44,6 +45,10 @@ public class CustomerEntity extends BaseAuditEntity {
     private UUID organizationId;
 
     private UUID branchId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "varchar(20) default 'ACTIVE'")
+    private StatusEnum status = StatusEnum.ACTIVE;
 
     @OneToOne(mappedBy = "customer", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
     private CustomerDetailEntity customerDetail;

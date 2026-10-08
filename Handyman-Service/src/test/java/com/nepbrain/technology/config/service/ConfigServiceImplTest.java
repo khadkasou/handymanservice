@@ -1,5 +1,10 @@
 package com.nepbrain.technology.config.service;
 
+import com.nepbrain.technology.core.enums.ApiStatusEnum;
+import com.nepbrain.technology.core.payload.response.GlobalResponse;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import com.nepbrain.technology.auth.entity.UserEntity;
 import com.nepbrain.technology.auth.enums.UserTypeEnum;
 import com.nepbrain.technology.auth.repository.UserRepository;
@@ -24,10 +29,6 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 @ExtendWith(MockitoExtension.class)
 class ConfigServiceImplTest {
 
@@ -36,8 +37,7 @@ class ConfigServiceImplTest {
     @Mock private ServiceRepository serviceRepository;
     @Mock private UserRepository userRepository;
 
-    @InjectMocks
-    private ConfigServiceImpl configService;
+    @InjectMocks private ConfigServiceImpl configService;
 
     @Test
     void configurations_success() {
@@ -49,23 +49,18 @@ class ConfigServiceImplTest {
         cfg.setId(UUID.randomUUID());
         when(appConfigurationRepository.findAll()).thenReturn(List.of(cfg));
 
-        ConfigurationResponse response = configService.configurations(true);
-
+        ConfigurationResponse response = (ConfigurationResponse) configService.configurations(true).getData();
         assertThat(response.getConfigurations()).containsEntry("app_name", "Handyman");
         verify(appConfigurationRepository).findAll();
     }
 
     @Test
     void configurations_nullValueBecomesEmptyString() {
-        AppConfigurationEntity cfg = AppConfigurationEntity.builder()
-                .key("empty_key")
-                .value(null)
-                .build();
+        AppConfigurationEntity cfg = AppConfigurationEntity.builder().key("empty_key").value(null).build();
         cfg.setId(UUID.randomUUID());
         when(appConfigurationRepository.findAll()).thenReturn(List.of(cfg));
 
-        ConfigurationResponse response = configService.configurations(false);
-
+        ConfigurationResponse response = (ConfigurationResponse) configService.configurations(false).getData();
         assertThat(response.getConfigurations()).containsEntry("empty_key", "");
     }
 
@@ -113,8 +108,7 @@ class ConfigServiceImplTest {
         when(userRepository.findByUserType(UserTypeEnum.PROVIDER)).thenReturn(List.of(provider));
         when(appConfigurationRepository.findAll()).thenReturn(List.of(cfg));
 
-        DashboardResponse response = configService.dashboardDetail();
-
+        DashboardResponse response = (DashboardResponse) configService.dashboardDetail().getData();
         assertThat(response.getCategory()).hasSize(1);
         assertThat(response.getService()).hasSize(2);
         assertThat(response.getProvider()).hasSize(1);
@@ -127,16 +121,13 @@ class ConfigServiceImplTest {
 
     @Test
     void firebaseDetail_success() {
-        when(appConfigurationRepository.findAll()).thenReturn(List.of(
-                config("firebase_api_key", "api"),
+        when(appConfigurationRepository.findAll()).thenReturn(List.of(config("firebase_api_key", "api"),
                 config("firebase_app_id", "app"),
                 config("firebase_messaging_sender_id", "sender"),
                 config("firebase_project_id", "project"),
-                config("firebase_storage_bucket", "bucket")
-        ));
+                config("firebase_storage_bucket", "bucket")));
 
-        FirebaseDetailResponse response = configService.firebaseDetail();
-
+        FirebaseDetailResponse response = (FirebaseDetailResponse) configService.firebaseDetail().getData();
         assertThat(response.getApiKey()).isEqualTo("api");
         assertThat(response.getAppId()).isEqualTo("app");
         assertThat(response.getMessagingSenderId()).isEqualTo("sender");
@@ -149,8 +140,7 @@ class ConfigServiceImplTest {
     void firebaseDetail_missingKeys_defaultEmpty() {
         when(appConfigurationRepository.findAll()).thenReturn(List.of());
 
-        FirebaseDetailResponse response = configService.firebaseDetail();
-
+        FirebaseDetailResponse response = (FirebaseDetailResponse) configService.firebaseDetail().getData();
         assertThat(response.getApiKey()).isEmpty();
         assertThat(response.getAppId()).isEmpty();
         assertThat(response.getProjectId()).isEmpty();
